@@ -6,10 +6,18 @@ __pycache__/
 dist/
 build/
 
+# Data files (raw extracts)
+**/raw/*.json
+**/raw/*.csv
+**/raw/*.parquet
+**/raw/*.txt
+!**/raw/.gitkeep
+
 # Environments & secrets
 .env
 .env.*
 !.env.example
+.venv/
 
 # dbt
 target/
