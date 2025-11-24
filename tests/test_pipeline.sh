@@ -14,7 +14,7 @@ fi
 
 # Start services
 echo "📦 Starting Kafka, Zookeeper, and MinIO..."
-docker compose -f docker-compose.dev.yml up -d
+docker compose -f infrastructure/docker/docker-compose.dev.yml up -d
 
 echo "⏳ Waiting 15 seconds for services to be ready..."
 sleep 15
@@ -22,7 +22,7 @@ sleep 15
 # Check services
 echo ""
 echo "✅ Checking services..."
-docker compose -f docker-compose.dev.yml ps
+docker compose -f infrastructure/docker/docker-compose.dev.yml ps
 
 # Activate venv
 echo ""
@@ -85,4 +85,4 @@ echo "  2. Navigate to Topics → egx_market_data"
 echo "  3. View messages, partitions, and consumer groups"
 echo ""
 echo "To stop services:"
-echo "  docker compose -f docker-compose.dev.yml down"
+echo "  docker compose -f infrastructure/docker/docker-compose.dev.yml down"
