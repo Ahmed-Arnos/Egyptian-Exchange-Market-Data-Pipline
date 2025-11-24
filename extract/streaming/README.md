@@ -64,9 +64,12 @@ This will:
 
 ### 5. Verify Data
 
-Open MinIO Console: http://localhost:9001  
+**MinIO Console**: http://localhost:9001  
 **Login**: `minioadmin` / `minioadmin`  
 **Navigate to**: `egx-data-bucket/streaming/`
+
+**Kafka UI**: http://localhost:8080  
+**View**: Topics → `egx_market_data` → Messages
 
 You should see folders like:
 ```
