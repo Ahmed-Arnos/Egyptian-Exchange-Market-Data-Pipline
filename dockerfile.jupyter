@@ -1,0 +1,20 @@
+FROM jupyter/base-notebook:python-3.10
+
+USER root
+
+RUN apt-get update && \
+    apt-get install -y openjdk-17-jre-headless procps curl && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+
+RUN pip install --no-cache-dir pyspark==3.5.0 pandas numpy
+
+WORKDIR /opt/conda/lib/python3.10/site-packages/pyspark/jars
+RUN curl -O https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar && \
+    curl -O https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.262/aws-java-sdk-bundle-1.12.262.jar
+
+RUN pip install --no-cache-dir boto3
+
+USER jovyan
+WORKDIR /home/jovyan/work
