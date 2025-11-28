@@ -52,7 +52,17 @@ sleep 3
 echo ""
 echo "📡 Running EGXpy producer (fetch 5 bars for COMI, ETEL)..."
 python extract/egxpy_streaming/producer_kafka.py \
-  --symbols COMI,ETEL \
+  --symbols TMGH, PHAR, ORWE, MTIE, MPRC, INFI, HRHO, HELI, ETEL, EKHO, EGX30, COMI, CCAP, AMOC, ADIB \
+  --interval Daily \
+  --n-bars 5 \
+  --topic egx_market_data \
+  --bootstrap-servers localhost:9093 \
+  --log-level INFO
+
+sleep 2
+
+python extract/egxpy_streaming/producer_kafka.py \
+  --symbols EMFD, TAQA, SKPC, UNIT, ABUK, ALCN, BINV, CIEB, CIRA, CLHO, EAST, EFIC, EFID, EFIH, EGAL  \
   --interval Daily \
   --n-bars 5 \
   --topic egx_market_data \
