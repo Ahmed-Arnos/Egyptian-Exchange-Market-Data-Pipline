@@ -2,8 +2,8 @@ version: "3.9"
 
 x-airflow-common: &airflow-common
     build:
-        context: .
-        dockerfile: dockerfile.airflow
+        context: ../..
+        dockerfile: infrastructure/docker/dockerfile.airflow
     environment: &airflow-common-env
         AIRFLOW__CORE__EXECUTOR: LocalExecutor
         AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
@@ -16,10 +16,10 @@ x-airflow-common: &airflow-common
         AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
         AWS_DEFAULT_REGION: us-east-1
     volumes:
-        - ./airflow/dags:/opt/airflow/dags
-        - ./airflow/logs:/opt/airflow/logs
-        - ./airflow/plugins:/opt/airflow/plugins
-        - ./airflow/src:/opt/workspace
+        - ../../airflow/dags:/opt/airflow/dags
+        - ../../airflow/logs:/opt/airflow/logs
+        - ../../airflow/plugins:/opt/airflow/plugins
+        - ../../airflow/src:/opt/workspace
     networks:
         - de-network
 
@@ -51,8 +51,8 @@ services:
 
     spark-master:
         build:
-            context: .
-            dockerfile: dockerfile.spark
+            context: ../..
+            dockerfile: infrastructure/docker/dockerfile.spark
         container_name: spark-master
         environment:
             - SPARK_MODE=master
@@ -66,8 +66,8 @@ services:
 
     spark-worker:
         build:
-            context: .
-            dockerfile: dockerfile.spark
+            context: ../..
+            dockerfile: infrastructure/docker/dockerfile.spark
         container_name: spark-worker
         environment:
             - SPARK_MODE=worker
@@ -93,7 +93,7 @@ services:
             postgres:
                 condition: service_healthy
 
-        airflow:
+    airflow:
         <<: *airflow-common
         container_name: airflow
         ports:
@@ -120,8 +120,8 @@ services:
     jupyter:
         # image: jupyter/pyspark-notebook:spark-3.3.2
         build:
-            context: .
-            dockerfile: dockerfile.jupyter
+            context: ../..
+            dockerfile: infrastructure/docker/dockerfile.jupyter
         container_name: jupyter
         user: root
         environment:
@@ -134,7 +134,7 @@ services:
         ports:
             - "8888:8888"
         volumes:
-            - ./scripts:/home/jovyan/scripts
+            - ../../scripts:/home/jovyan/scripts
             # - ./data/raw:/raw_mount
         depends_on:
             - spark-master
@@ -226,7 +226,7 @@ services:
             GF_INSTALL_PLUGINS: ""
         volumes:
             - grafana_data:/var/lib/grafana
-            - ./infrastructure/docker/grafana/provisioning:/etc/grafana/provisioning
+            - ./grafana/provisioning:/etc/grafana/provisioning
         networks:
             - de-network
 
