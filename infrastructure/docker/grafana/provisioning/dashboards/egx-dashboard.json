@@ -1,0 +1,181 @@
+{
+  "dashboard": {
+    "title": "EGX Market Data - Real-time",
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "5s",
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+        "type": "timeseries",
+        "title": "Stock Prices - Close",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": { "type": "influxdb", "uid": "influxdb" },
+            "query": "from(bucket: \"market_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> filter(fn: (r) => r[\"_field\"] == \"close\")\n  |> aggregateWindow(every: 10s, fn: last, createEmpty: false)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "palette-classic" },
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 10,
+              "showPoints": "auto"
+            },
+            "unit": "EGP"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+        "type": "timeseries",
+        "title": "Trading Volume",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": { "type": "influxdb", "uid": "influxdb" },
+            "query": "from(bucket: \"market_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> filter(fn: (r) => r[\"_field\"] == \"volume\")\n  |> aggregateWindow(every: 10s, fn: sum, createEmpty: false)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "palette-classic" },
+            "custom": {
+              "drawStyle": "bars",
+              "fillOpacity": 80
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+        "type": "timeseries",
+        "title": "OHLC Candlestick",
+        "targets": [
+          {
+            "refId": "Open",
+            "datasource": { "type": "influxdb", "uid": "influxdb" },
+            "query": "from(bucket: \"market_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> filter(fn: (r) => r[\"_field\"] == \"open\")\n  |> aggregateWindow(every: 1m, fn: last, createEmpty: false)"
+          },
+          {
+            "refId": "High",
+            "datasource": { "type": "influxdb", "uid": "influxdb" },
+            "query": "from(bucket: \"market_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> filter(fn: (r) => r[\"_field\"] == \"high\")\n  |> aggregateWindow(every: 1m, fn: last, createEmpty: false)"
+          },
+          {
+            "refId": "Low",
+            "datasource": { "type": "influxdb", "uid": "influxdb" },
+            "query": "from(bucket: \"market_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> filter(fn: (r) => r[\"_field\"] == \"low\")\n  |> aggregateWindow(every: 1m, fn: last, createEmpty: false)"
+          },
+          {
+            "refId": "Close",
+            "datasource": { "type": "influxdb", "uid": "influxdb" },
+            "query": "from(bucket: \"market_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> filter(fn: (r) => r[\"_field\"] == \"close\")\n  |> aggregateWindow(every: 1m, fn: last, createEmpty: false)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "palette-classic" },
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "fillOpacity": 0
+            },
+            "unit": "EGP"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "gridPos": { "h": 4, "w": 6, "x": 0, "y": 16 },
+        "type": "stat",
+        "title": "Latest Price",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": { "type": "influxdb", "uid": "influxdb" },
+            "query": "from(bucket: \"market_data\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> filter(fn: (r) => r[\"_field\"] == \"close\")\n  |> last()"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "unit": "EGP",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": null, "color": "green" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "gridPos": { "h": 4, "w": 6, "x": 6, "y": 16 },
+        "type": "stat",
+        "title": "Total Volume (5m)",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": { "type": "influxdb", "uid": "influxdb" },
+            "query": "from(bucket: \"market_data\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> filter(fn: (r) => r[\"_field\"] == \"volume\")\n  |> sum()"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 6,
+        "gridPos": { "h": 4, "w": 6, "x": 12, "y": 16 },
+        "type": "stat",
+        "title": "Active Symbols",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": { "type": "influxdb", "uid": "influxdb" },
+            "query": "from(bucket: \"market_data\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> distinct(column: \"symbol\")\n  |> count()"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "gridPos": { "h": 4, "w": 6, "x": 18, "y": 16 },
+        "type": "stat",
+        "title": "Data Points (5m)",
+        "targets": [
+          {
+            "refId": "A",
+            "datasource": { "type": "influxdb", "uid": "influxdb" },
+            "query": "from(bucket: \"market_data\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> count()"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "unit": "short"
+          }
+        }
+      }
+    ]
+  },
+  "overwrite": true
+}

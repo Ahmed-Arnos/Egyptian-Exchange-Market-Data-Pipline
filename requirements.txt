@@ -3,6 +3,8 @@ beautifulsoup4
 kaggle
 python-dotenv
 egxpy @ git+https://github.com/egxlytics/egxpy.git
-# Local streaming PoC dependencies
+
+# Streaming dependencies
 kafka-python
 boto3
+influxdb-client>=1.36.0

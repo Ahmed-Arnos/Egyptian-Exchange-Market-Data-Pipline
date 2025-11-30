@@ -8,50 +8,73 @@ Ahmed Elsaba (@ahmadelsap3), Karim Yasser, Alaa Hamam, Ahmed Arnos, Eslam Shatto
 
 ## Quick Start
 
-### Local Streaming Pipeline
+### Real-time Streaming Pipeline (Grafana Dashboard) ⭐ NEW
 
 ```bash
-# 1. Activate venv
+# One-command setup
+./setup_streaming.sh
+
+# Or manually:
+# 1. Start all services
+cd infrastructure/docker && docker compose -f docker-compose.dev.yml up -d
+
+# 2. Activate venv and install dependencies
 source .venv/bin/activate
+pip install -r requirements.txt
 
-# 2. Start Kafka + MinIO
-docker-compose -f docker-compose.dev.yml up -d
+# 3. Start real-time consumer (Kafka → InfluxDB)
+python extract/realtime/consumer_influxdb.py --topic egx_market_data --bootstrap localhost:9093 &
 
-# 3. Run producer (fetch EGX data → Kafka)
+# 4. Start producer (EGX API → Kafka)
 python extract/egxpy_streaming/producer_kafka.py \
-  --symbols COMI,ETEL --interval Daily --n-bars 10 --poll-interval 60
+  --symbols COMI,ETEL --interval Daily --n-bars 10 --poll-interval 60 \
+  --bootstrap-servers localhost:9093
 
-# 4. Run consumer (Kafka → S3/MinIO)
-python extract/streaming/consumer_kafka.py \
-  --topic egx_market_data --bucket egx-data-bucket
-
-# 5. View data in MinIO: http://localhost:9001 (minioadmin/minioadmin)
+# 5. View Grafana dashboard: http://localhost:3000 (admin/admin)
 ```
 
-See `extract/streaming/README.md` for detailed setup and `docs/STREAMING_ARCHITECTURE.md` for architecture.
+### Batch Pipeline (S3 Storage)
+
+```bash
+# Start consumer (Kafka → S3)
+python extract/streaming/consumer_kafka.py \
+  --topic egx_market_data --bucket egx-data-bucket --use-aws
+
+# View data in MinIO: http://localhost:9001 (minioadmin/minioadmin)
+```
+
+See `extract/realtime/README.md` for streaming details and `extract/streaming/README.md` for batch pipeline.
 
 Architecture overview
 ---------------------
 
-### Integrated Streaming Pipeline (Implemented ✅)
-```
-EGX API → egxpy producer → Kafka → consumer → S3/MinIO
-  ↓                          ↓                    ↓
-Daily/Intraday OHLCV    Topic: egx_market_data   Partitioned: date=*/symbol=*/*.json
-```
+### Two Parallel Pipelines
 
-### Full Pipeline (Planned)
+#### 1. Real-time Streaming (NEW ✅)
+```
+EGX API → Kafka → InfluxDB → Grafana
+(egxpy)          (real-time)  (live dashboard)
+```
+- **Purpose**: Live monitoring, current prices, trading alerts
+- **Tools**: Kafka, InfluxDB, Grafana
+- **Auto-refresh**: Every 5 seconds
+- **Access**: http://localhost:3000
 
-- **Extract**: 
-  - Streaming: EGX data via `egxpy` → Kafka → S3 (✅ implemented)
-  - Batch: Kaggle datasets → S3 Bronze (planned)
-- **Load (Bronze)**: Raw data in S3 with date/symbol partitioning
-- **Transform (Silver)**:
-  - Streaming: Spark Structured Streaming from S3 → Parquet
-  - Batch: dbt transformations for curated models
-- **Serve (Gold)**: Snowflake as the data warehouse for BI
-- **Orchestrate**: Apache Airflow
-- **Containerize**: Docker
+#### 2. Batch Processing (Existing ✅)
+```
+Sources → Kafka → S3 → Spark/dbt → Snowflake → Power BI
+├─ EGX API (historical)
+├─ Kaggle datasets
+└─ Web scraping
+```
+- **Purpose**: Historical analysis, reports, ML models
+- **Storage**: S3 (streaming/, batch/ folders)
+- **Transform**: dbt (recommended) or Spark
+- **Warehouse**: Snowflake
+
+**Note**: Both pipelines share the same Kafka topic (`egx_market_data`). Two consumers run in parallel:
+- `consumer_influxdb.py` → InfluxDB (real-time)
+- `consumer_kafka.py` → S3 (batch storage)
 
 Branching model
 ---------------
@@ -71,10 +94,24 @@ Typical flow
 
 ```
 extract/
-  egxpy_streaming/       # EGX data fetcher + Kafka producer
-    producer_kafka.py    # Fetch EGX data → publish to Kafka
-    consumer.py          # (Legacy: direct-to-disk, deprecated)
-  streaming/             # Kafka consumer
+  realtime/              # ⭐ Real-time streaming pipeline (NEW)
+    consumer_influxdb.py # Kafka → InfluxDB for live dashboards
+    README.md            # Real-time setup guide
+  egxpy_streaming/       # EGX data producer
+    producer_kafka.py    # Fetch EGX data → Kafka
+  streaming/             # Batch pipeline (S3 storage)
+    consumer_kafka.py    # Kafka → S3 for historical analysis
+    README.md            # Batch pipeline guide
+  kaggle/                # Batch datasets (planned)
+  aws/                   # AWS connectivity helpers
+
+infrastructure/
+  docker/
+    docker-compose.dev.yml  # All services (Kafka, InfluxDB, Grafana, MinIO)
+    grafana/                # Grafana dashboards + datasources
+
+setup_streaming.sh     # ⭐ One-command setup for teammates
+```
     consumer_kafka.py    # Kafka → S3/MinIO with partitioning
     producer.py          # (Legacy: simulator, kept for testing)
   kaggle/                # Batch extractors (planned)
