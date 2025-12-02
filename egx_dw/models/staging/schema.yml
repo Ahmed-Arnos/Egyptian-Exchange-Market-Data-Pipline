@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: stg_stock_prices
+    description: "Staging table for raw stock price data from InfluxDB/Bronze layer"
+    columns:
+      - name: symbol
+        description: "Stock symbol (e.g., COMI, ETEL)"
+        tests:
+          - not_null
+      - name: timestamp
+        description: "Trading timestamp"
+        tests:
+          - not_null
+      - name: close_price
+        description: "Closing price"
+      - name: volume
+        description: "Trading volume"
