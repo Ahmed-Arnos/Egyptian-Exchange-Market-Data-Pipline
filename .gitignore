@@ -22,6 +22,7 @@ build/
 !.env.example
 .venv/
 .venv-aws/
+venv/
 TEAM_CREDENTIALS.txt
 *.credentials.txt
 
