@@ -1,32 +1,61 @@
-Extract directory
-===============
+# Data Extraction
 
-This directory contains starter extractor scripts for the project.
+Ingestion pipelines for EGX market data from multiple sources.
 
-Files:
-- `kaggle/download_kaggle.py` — downloads the Kaggle dataset (uses the `kaggle` package and your `KAGGLE_USERNAME`/`KAGGLE_KEY` in env)
-- `egx/scraper.py` — simple scraper for EGX homepage/ticker pages that saves raw JSON to `extract/egx`
-- `massive/api_consumer.py` — simple API consumer example for Massive dashboard, stores JSON responses in `extract/massive`
+## Components
 
-Run examples (from repo root):
+### Real-time Streaming
+**Location**: `realtime/`
+- `consumer_influxdb.py` - Kafka → InfluxDB for live dashboards
+- Latency: <5 seconds
+- Output: InfluxDB time-series for Grafana
 
-1) Kaggle dataset (requires `kaggle` CLI installed and credentials configured):
+### Batch Streaming
+**Location**: `streaming/`
+- `consumer_kafka.py` - Kafka → S3 for historical analysis
+- Output: Partitioned Parquet files in S3
 
+### EGX Producer
+**Location**: `egxpy_streaming/`
+- `producer_kafka.py` - EGX API → Kafka topic `egx_market_data`
+- Uses egxpy library for market data
+- Configurable polling interval
+
+### Historical Data
+**Location**: `kaggle/`
+- `download_kaggle.py` - Kaggle datasets (2019-2025)
+- Dataset: `saurabhshahane/egyptian-stock-exchange`
+
+## Usage
+
+**Real-time pipeline:**
 ```bash
-python extract/kaggle/download_kaggle.py --dataset saurabhshahane/egyptian-stock-exchange --outdir extract/kaggle/raw
+# Start consumer
+python extract/realtime/consumer_influxdb.py --topic egx_market_data --bootstrap localhost:9093 &
+
+# Start producer
+python extract/egxpy_streaming/producer_kafka.py \
+  --symbols COMI,ETEL --interval Daily --n-bars 10
 ```
 
-2) EGX scraping (quick test):
-
+**Batch pipeline:**
 ```bash
-python extract/egx/scraper.py --outdir extract/egx/raw
+python extract/streaming/consumer_kafka.py \
+  --topic egx_market_data --bucket egx-data-bucket --use-aws
 ```
 
-3) Massive API (use provided key in `.env` or pass via env):
-
+**Kaggle historical:**
 ```bash
-MASSIVE_API_KEY=6xetVzZ1BUNVbeJTeJzuNu44g5EA5SGs python extract/massive/api_consumer.py --outdir extract/massive/raw
+python extract/kaggle/download_kaggle.py \
+  --dataset saurabhshahane/egyptian-stock-exchange \
+  --outdir extract/kaggle/raw
 ```
 
-Notes
-- These are starter scripts — treat them as PoCs. Add retries, robust parsing, rate-limit respect, and data validation before using in production.
+## Data Flow
+
+```
+EGX API → Kafka → [InfluxDB (real-time) + S3 (batch)] → Snowflake → Grafana
+```
+
+Both consumers run in parallel on the same Kafka topic.
+

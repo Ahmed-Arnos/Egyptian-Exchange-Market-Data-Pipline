@@ -1,8 +1,0 @@
-version: 2
-
-sources:
-  - name: egx_raw # اسم المصدر بتاعك
-    database: EGX_DB # الـ Database اللي فيه الداتا الخام
-    schema: RAW # الـ Schema اللي فيه الجدول egx30_history_data
-    tables:
-      - name: egx30_history_data # اسم الجدول اللي حملنا فيه الـ 30 ملف

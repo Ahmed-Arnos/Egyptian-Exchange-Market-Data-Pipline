@@ -1,41 +1,43 @@
 version: 2
 
 models:
-  - name: stg_egx30 
-    description: "البيانات النظيفة والموحدة لأسعار الأسهم اليومية (EGX30)"
-    
-    # 1. الاختبارات على مستوى الموديل (اللي نجحت)
-    tests:
-      - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - stock_symbol
-            - trade_date
-            
-    # 2. تعريف الأعمدة والاختبارات الفردية
+  - name: stg_stock_prices_unified
+    description: Unified and cleaned stock prices from historical and streaming sources
+    config:
+      tags: ['staging', 'silver']
     columns:
-      
-      - name: stock_symbol
-        description: "رمز السهم"
+      - name: symbol
+        description: Stock ticker symbol
         tests:
-          - not_null       
-      
+          - not_null
       - name: trade_date
-        description: "تاريخ التداول"
+        description: Trading date
         tests:
-          - not_null       
-
-      - name: closing_price
-        description: "سعر الإغلاق اليومي"
+          - not_null
+      - name: trade_datetime
+        description: Trading date and time
         tests:
-          # استخدام accepted_range: (لازم تكون القيمة > 0)
-          - dbt_utils.accepted_range:
-              min_value: 0.0001 # أقل قيمة ممكنة هي قيمة موجبة جداً
-              inclusive: true # القيمة دي مسموح بيها
-          
+          - not_null
+      - name: open_price
+        description: Opening price
+      - name: high_price
+        description: Highest price
+      - name: low_price
+        description: Lowest price
+      - name: close_price
+        description: Closing price
       - name: volume
-        description: "حجم التداول اليومي"
+        description: Trading volume (parsed from string notation)
+      - name: change_pct
+        description: Percentage change from previous close
+      - name: data_source
+        description: Source of the data (HISTORICAL or STREAMING)
         tests:
-          # استخدام accepted_range: (لازم تكون القيمة >= 0)
-          - dbt_utils.accepted_range:
-              min_value: 0
-              inclusive: true # القيمة صفر مسموح بيها في حجم التداول
+          - accepted_values:
+              values: ['HISTORICAL', 'STREAMING']
+      - name: is_complete
+        description: Flag indicating all OHLCV fields are present
+      - name: has_anomaly
+        description: Flag indicating data quality issues
+      - name: processed_at
+        description: Timestamp when record was processed by dbt
