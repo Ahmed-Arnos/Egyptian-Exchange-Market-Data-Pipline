@@ -2,6 +2,34 @@
 
 Complete data engineering infrastructure for EGX Market Data Pipeline.
 
+## ⚠️ IMPORTANT: Configuration Required
+
+**Before starting services**, you MUST configure AWS credentials:
+
+1. Edit `infrastructure/docker/.env`
+2. Add your AWS credentials:
+```bash
+AWS_ACCESS_KEY_ID=AKIA...your-key...
+AWS_SECRET_ACCESS_KEY=your-secret-key-here
+```
+
+## Quick Start
+
+```bash
+cd infrastructure/docker
+
+# Option 1: Use setup script
+./start_services.sh
+
+# Option 2: Manual start
+docker compose up -d
+```
+
+**Access URLs:**
+- Airflow: http://localhost:8081 (admin/admin)
+- Grafana: http://localhost:3000 (admin/admin)
+- Kafka UI: http://localhost:8082
+
 ## Services Included
 
 ### 📊 Real-time Streaming
