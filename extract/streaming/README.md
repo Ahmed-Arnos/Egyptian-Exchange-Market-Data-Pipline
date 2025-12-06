@@ -2,11 +2,11 @@
 
 ## Overview
 
-This is the **integrated streaming pipeline** that fetches real Egyptian Exchange (EGX) data and streams it through Kafka to S3/MinIO storage.
+This is the **integrated streaming pipeline** that fetches real Egyptian Exchange (EGX) data and streams it through Kafka to AWS S3 storage.
 
 **Pipeline Flow**:
 ```
-EGX API → egxpy producer → Kafka → consumer → S3/MinIO (partitioned by date+symbol)
+EGX API → egxpy producer → Kafka → consumer → S3 (partitioned by date+symbol)
 ```
 
 For detailed architecture and message formats, see: `docs/STREAMING_ARCHITECTURE.md`
@@ -27,7 +27,7 @@ pip install kafka-python boto3  # Already in requirements.txt
 docker-compose -f docker-compose.dev.yml up -d
 ```
 
-Wait 10-15 seconds for Kafka and MinIO to be ready.
+Wait 10-15 seconds for Kafka to be ready.
 
 ### 3. Run EGXpy Producer (Terminal 1)
 
@@ -48,18 +48,17 @@ This will:
 
 ### 4. Run Kafka Consumer (Terminal 2)
 
-Consume from Kafka and write to MinIO:
+Consume from Kafka and write to S3:
 
 ```bash
 python extract/streaming/consumer_kafka.py \
   --topic egx_market_data \
-  --bucket egx-data-bucket \
-  --minio-endpoint http://localhost:9000
+  --bucket egx-data-bucket
 ```
 
 This will:
 - Read messages from Kafka
-- Write to MinIO with partitioned keys: `streaming/date=YYYY-MM-DD/symbol=XXX/*.json`
+- Write to S3 with partitioned keys: `streaming/date=YYYY-MM-DD/symbol=XXX/*.json`
 - Create bucket automatically if missing
 
 ### 5. Verify Data
@@ -144,10 +143,8 @@ python extract/streaming/consumer_kafka.py --help
 
 Key arguments:
 - `--topic`: Kafka topic (default: `egx_market_data`)
-- `--bucket`: S3/MinIO bucket (default: `egx-data-bucket`)
+- `--bucket`: S3 bucket (default: `egx-data-bucket`)
 - `--prefix`: S3 key prefix (default: `streaming/`)
-- `--use-aws`: Use AWS S3 instead of MinIO
-- `--minio-endpoint`: MinIO URL (default: `http://localhost:9000`)
 - `--consumer-group`: Kafka consumer group (default: `egx-s3-writer`)
 
 ## Troubleshooting
@@ -162,7 +159,7 @@ docker ps | grep kafka
 docker logs egyptian-exchange-market-data-pipline-kafka-1
 ```
 
-### MinIO 403 Forbidden
+### S3 Permission Errors
 
 ```bash
 # Verify credentials

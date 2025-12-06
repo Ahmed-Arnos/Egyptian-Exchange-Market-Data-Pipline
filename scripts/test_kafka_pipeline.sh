@@ -13,7 +13,7 @@ if ! docker ps > /dev/null 2>&1; then
 fi
 
 # Start services
-echo "📦 Starting Kafka, Zookeeper, and MinIO..."
+echo "📦 Starting Kafka and Zookeeper..."
 docker compose -f infrastructure/docker/docker-compose.dev.yml up -d
 
 echo "⏳ Waiting 15 seconds for services to be ready..."
@@ -39,8 +39,7 @@ echo ""
 echo "🚀 Starting Kafka consumer (background)..."
 python extract/streaming/consumer_kafka.py \
   --topic egx_market_data \
-  --bucket egx-data-bucket \
-  --minio-endpoint http://localhost:9000 \
+  --bucket egx-test-bucket &
   --bootstrap localhost:9093 \
   --log-level INFO > consumer.log 2>&1 &
 
@@ -84,10 +83,8 @@ tail -20 consumer.log
 echo ""
 echo "✅ Test complete!"
 echo ""
-echo "To view data in MinIO:"
-echo "  1. Open http://localhost:9001 in browser"
-echo "  2. Login: minioadmin / minioadmin"
-echo "  3. Browse bucket: egx-data-bucket/streaming/"
+echo "To view data in S3:"
+echo "  Check your AWS S3 bucket: egx-test-bucket/streaming/"
 echo ""
 echo "To view Kafka topics and messages:"
 echo "  1. Open http://localhost:8080 in browser"

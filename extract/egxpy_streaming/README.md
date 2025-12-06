@@ -201,7 +201,7 @@ This consumer is designed as the **streaming extraction layer** for the pipeline
 ```
 egxpy_streaming (this)
   ↓
-Bronze Layer (S3/MinIO - raw JSON)
+Bronze Layer (S3 - raw JSON)
   ↓
 Kafka Topics (real-time streaming)
   ↓
@@ -217,7 +217,7 @@ Gold Layer (Snowflake warehouse)
 ### Next Steps
 
 1. **Kafka Producer**: Publish fetched data to Kafka topics
-2. **Bronze Storage**: Upload JSON files to S3/MinIO
+2. **Bronze Storage**: Upload JSON files to S3
 3. **Spark Consumer**: Read from Kafka, apply transformations
 4. **Schema Validation**: Add Pydantic models for data quality
 

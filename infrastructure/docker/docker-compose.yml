@@ -12,9 +12,9 @@ x-airflow-common: &airflow-common
         AIRFLOW__CORE__LOAD_EXAMPLES: "false"
         AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
         AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
-        AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
-        AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
-        AWS_DEFAULT_REGION: us-east-1
+        AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+        AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+        AWS_DEFAULT_REGION: ${AWS_REGION:-us-east-1}
     volumes:
         - ../../airflow/dags:/opt/airflow/dags
         - ../../airflow/logs:/opt/airflow/logs
@@ -166,21 +166,6 @@ services:
         networks:
             - de-network
 
-    minio:
-        image: minio/minio:latest
-        container_name: minio
-        command: server /data --console-address ":9001"
-        environment:
-            MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-            MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-        ports:
-            - "9000:9000"
-            - "9001:9001"
-        volumes:
-            - minio_data:/data
-        networks:
-            - de-network
-
     kafka-ui:
         image: provectuslabs/kafka-ui:latest
         container_name: kafka-ui
@@ -237,6 +222,5 @@ networks:
 
 volumes:
     EGX_market:
-    minio_data:
     influxdb_data:
     grafana_data:

@@ -1,0 +1,75 @@
+version: 2
+
+models:
+  - name: gold_fct_stock_daily_prices
+    description: Daily stock prices with technical indicators and trend signals
+    config:
+      tags: ['gold', 'fact']
+    columns:
+      - name: symbol
+        description: Stock ticker symbol
+        tests:
+          - not_null
+      - name: trade_date
+        description: Trading date
+        tests:
+          - not_null
+      - name: close_price
+        description: Closing price
+        tests:
+          - not_null
+      - name: ma_7d
+        description: 7-day moving average of closing price
+      - name: ma_30d
+        description: 30-day moving average of closing price
+      - name: trend_signal
+        description: Trend classification (BULLISH, BEARISH, NEUTRAL)
+        tests:
+          - accepted_values:
+              values: ['BULLISH', 'BEARISH', 'NEUTRAL']
+      - name: volume_signal
+        description: Volume classification (HIGH, NORMAL, LOW)
+        tests:
+          - accepted_values:
+              values: ['HIGH', 'NORMAL', 'LOW']
+      - name: data_source
+        description: Source of the data (HISTORICAL or STREAMING)
+
+  - name: gold_dim_stock
+    description: Stock dimension table with master data
+    config:
+      tags: ['gold', 'dimension']
+    columns:
+      - name: symbol
+        description: Stock ticker symbol (primary key)
+        tests:
+          - unique
+          - not_null
+      - name: first_trade_date
+        description: First trading date in our data
+      - name: last_trade_date
+        description: Most recent trading date
+      - name: total_trading_days
+        description: Total number of trading days
+      - name: is_active
+        description: Whether the stock is currently active
+
+  - name: vw_gold_market_snapshot
+    description: Latest prices and signals for all stocks (Grafana dashboard)
+    config:
+      tags: ['gold', 'grafana', 'view']
+
+  - name: vw_gold_price_history
+    description: 6-month price history with moving averages (Grafana charts)
+    config:
+      tags: ['gold', 'grafana', 'view']
+
+  - name: vw_gold_top_movers
+    description: Top gainers and losers (Grafana dashboard)
+    config:
+      tags: ['gold', 'grafana', 'view']
+
+  - name: vw_gold_volume_leaders
+    description: Stocks with highest volume (Grafana dashboard)
+    config:
+      tags: ['gold', 'grafana', 'view']
