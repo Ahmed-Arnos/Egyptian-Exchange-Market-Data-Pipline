@@ -39,70 +39,72 @@ docker compose up -d
 - **Grafana** (3000) - Dashboards and visualization
 - **Kafka-UI** (8082) - Kafka monitoring
 
-### 🔧 Batch Processing
+### 🔧 Orchestration
 - **Airflow** (8081) - Workflow orchestration
 - **Postgres** (5432) - Airflow metadata store
-- **Spark Master** (7077, 8080) - Distributed processing
-- **Spark Worker** (8090) - Compute nodes
-- **Jupyter** (8888) - Interactive development
 
-### 💾 Storage
-- **MinIO** (9000, 9001) - S3-compatible object storage
+## Usage
+
 
 ## Usage
 
 ### Start All Services
 ```bash
 cd infrastructure/docker
-docker-compose up -d
+docker compose up -d
 ```
 
-### Start Specific Services
+### Check Service Status
 ```bash
-# Streaming only
-docker-compose up -d kafka zookeeper influxdb grafana
+docker compose ps
+```
 
-# Batch processing only
-docker-compose up -d postgres airflow airflow-scheduler spark-master spark-worker
+### View Logs
+```bash
+# All services
+docker compose logs -f
 
-# Storage
-docker-compose up -d minio
+# Specific service
+docker compose logs -f airflow
 ```
 
 ### Access Services
-- Grafana: http://localhost:3000 (admin/admin)
 - Airflow: http://localhost:8081 (admin/admin)
-- Jupyter: http://localhost:8888 (token: admin)
+- Grafana: http://localhost:3000 (admin/admin)
 - Kafka-UI: http://localhost:8082
-- MinIO Console: http://localhost:9001 (minioadmin/minioadmin)
-- Spark UI: http://localhost:8080
+- InfluxDB: http://localhost:8086
 
 ### Stop Services
 ```bash
-docker-compose down
+docker compose down
 ```
 
-### Clean Volumes (CAUTION: Deletes all data)
+### Clean Volumes (⚠️ Deletes all data)
 ```bash
-docker-compose down -v
+docker compose down -v
 ```
 
 ## Configuration
 
-### Environment Variables
-Create `.env` file in project root:
+### Environment Variables (.env)
 ```bash
+# PostgreSQL (Airflow metadata)
 POSTGRES_USER=airflow
 POSTGRES_PASSWORD=airflow
 POSTGRES_DB=airflow
-MINIO_ROOT_USER=minioadmin
-MINIO_ROOT_PASSWORD=minioadmin
+
+# AWS Credentials (Required)
+AWS_ACCESS_KEY_ID=your-key-here
+AWS_SECRET_ACCESS_KEY=your-secret-here
+AWS_REGION=us-east-1
 ```
 
-### Grafana Dashboard
-Dashboard automatically provisioned from `grafana/provisioning/dashboards/egx-dashboard.json`
+## Container Details
 
-### Dockerfiles
-- `dockerfile.airflow` - Airflow with Spark support
-- `dockerfile.spark` - Spark 3.5.0 with Hadoop AWS
-- `dockerfile.jupyter` - Jupyter with PySpark
+All services use official Docker images:
+- **Airflow**: `apache/airflow:2.9.0-python3.10` with packages: egxpy, kafka-python, boto3, influxdb-client
+- **PostgreSQL**: `postgres:15`
+- **Kafka**: `confluentinc/cp-kafka:7.5.0`
+- **Zookeeper**: `confluentinc/cp-zookeeper:7.5.0`
+- **InfluxDB**: `influxdb:2.7`
+- **Grafana**: `grafana/grafana:latest`

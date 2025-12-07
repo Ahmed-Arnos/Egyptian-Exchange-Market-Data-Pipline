@@ -1,25 +1,5 @@
-x-airflow-common: &airflow-common
-    build:
-        context: ../..
-        dockerfile: infrastructure/docker/dockerfile.airflow
-    environment: &airflow-common-env
-        AIRFLOW__CORE__EXECUTOR: LocalExecutor
-        AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-        AIRFLOW__CORE__FERNET_KEY: ""
-        AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
-        AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-        AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
-        AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
-        AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-        AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-        AWS_DEFAULT_REGION: ${AWS_REGION:-us-east-1}
-    volumes:
-        - ../../airflow/dags:/opt/airflow/dags
-        - ../../airflow/logs:/opt/airflow/logs
-        - ../../airflow/plugins:/opt/airflow/plugins
-        - ../../airflow/src:/opt/workspace
-    networks:
-        - de-network
+# EGX Market Data Pipeline - Complete Infrastructure
+# All services in one file: Airflow, Kafka, InfluxDB, Grafana, PostgreSQL
 
 services:
 
@@ -31,7 +11,7 @@ services:
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
             POSTGRES_DB: ${POSTGRES_DB}
         volumes:
-            - EGX_market:/var/lib/postgresql/data
+            - postgres_data:/var/lib/postgresql/data
         ports:
             - "5432:5432"
         healthcheck:
@@ -47,40 +27,26 @@ services:
         networks:
             - de-network
 
-    spark-master:
-        build:
-            context: ../..
-            dockerfile: infrastructure/docker/dockerfile.spark
-        container_name: spark-master
-        environment:
-            - SPARK_MODE=master
-            - SPARK_MASTER_HOST=spark-master
-        command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master --host 0.0.0.0 --port 7077
-        ports:
-            - "7077:7077"
-            - "8080:8080"
-        networks:
-            - de-network
-
-    spark-worker:
-        build:
-            context: ../..
-            dockerfile: infrastructure/docker/dockerfile.spark
-        container_name: spark-worker
-        environment:
-            - SPARK_MODE=worker
-            - SPARK_MASTER=spark://spark-master:7077
-        depends_on:
-            - spark-master
-        command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
-        ports:
-            - "8090:8090"
-        networks:
-            - de-network
-
     airflow-init:
-        <<: *airflow-common
+        image: apache/airflow:2.9.0-python3.10
         container_name: airflow-init
+        environment:
+            AIRFLOW__CORE__EXECUTOR: LocalExecutor
+            AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+            AIRFLOW__CORE__FERNET_KEY: ""
+            AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+            AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+            AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+            AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+            AWS_DEFAULT_REGION: ${AWS_REGION:-us-east-1}
+            _PIP_ADDITIONAL_REQUIREMENTS: "egxpy kafka-python boto3 apache-airflow-providers-apache-kafka apache-airflow-providers-amazon influxdb-client"
+        volumes:
+            - ../../airflow/dags:/opt/airflow/dags
+            - ../../airflow/logs:/opt/airflow/logs
+            - ../../airflow/plugins:/opt/airflow/plugins
+            - ../../extract:/opt/extract
+        networks:
+            - de-network
         command: >
             bash -c "
             airflow db migrate &&
@@ -92,8 +58,27 @@ services:
                 condition: service_healthy
 
     airflow:
-        <<: *airflow-common
+        image: apache/airflow:2.9.0-python3.10
         container_name: airflow
+        environment:
+            AIRFLOW__CORE__EXECUTOR: LocalExecutor
+            AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+            AIRFLOW__CORE__FERNET_KEY: ""
+            AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+            AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+            AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
+            AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+            AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+            AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+            AWS_DEFAULT_REGION: ${AWS_REGION:-us-east-1}
+            _PIP_ADDITIONAL_REQUIREMENTS: "egxpy kafka-python boto3 apache-airflow-providers-apache-kafka apache-airflow-providers-amazon influxdb-client"
+        volumes:
+            - ../../airflow/dags:/opt/airflow/dags
+            - ../../airflow/logs:/opt/airflow/logs
+            - ../../airflow/plugins:/opt/airflow/plugins
+            - ../../extract:/opt/extract
+        networks:
+            - de-network
         ports:
             - "8081:8080"
         healthcheck:
@@ -108,36 +93,29 @@ services:
                 condition: service_completed_successfully
 
     airflow-scheduler:
-        <<: *airflow-common
+        image: apache/airflow:2.9.0-python3.10
         container_name: airflow-scheduler
+        environment:
+            AIRFLOW__CORE__EXECUTOR: LocalExecutor
+            AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+            AIRFLOW__CORE__FERNET_KEY: ""
+            AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+            AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+            AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+            AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+            AWS_DEFAULT_REGION: ${AWS_REGION:-us-east-1}
+            _PIP_ADDITIONAL_REQUIREMENTS: "egxpy kafka-python boto3 apache-airflow-providers-apache-kafka apache-airflow-providers-amazon influxdb-client"
+        volumes:
+            - ../../airflow/dags:/opt/airflow/dags
+            - ../../airflow/logs:/opt/airflow/logs
+            - ../../airflow/plugins:/opt/airflow/plugins
+            - ../../extract:/opt/extract
+        networks:
+            - de-network
         command: bash -c "exec airflow scheduler"
         depends_on:
             airflow-init:
                 condition: service_completed_successfully
-
-    jupyter:
-        # image: jupyter/pyspark-notebook:spark-3.3.2
-        build:
-            context: ../..
-            dockerfile: infrastructure/docker/dockerfile.jupyter
-        container_name: jupyter
-        user: root
-        environment:
-            - JUPYTER_TOKEN=admin
-            - SPARK_MASTER=spark://spark-master:7077
-            # - SPARK_HOME=/usr/local/spark
-            - SPARK_DRIVER_BIND_ADDRESS=0.0.0.0
-            - PYSPARK_SUBMIT_ARGS=--conf spark.driver.bindAddress=0.0.0.0 --master spark://spark-master:7077 pyspark-shell
-            - SPARK_DRIVER_HOST=jupyter
-        ports:
-            - "8888:8888"
-        volumes:
-            - ../../scripts:/home/jovyan/scripts
-            # - ./data/raw:/raw_mount
-        depends_on:
-            - spark-master
-        networks:
-            - de-network
 
     zookeeper:
         image: confluentinc/cp-zookeeper:7.5.0
@@ -219,6 +197,6 @@ networks:
         driver: bridge
 
 volumes:
-    EGX_market:
+    postgres_data:
     influxdb_data:
     grafana_data:
