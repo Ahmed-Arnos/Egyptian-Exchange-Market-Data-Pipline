@@ -1,0 +1,14 @@
+egx_dw:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT', 'LPDTDON-IU51056') }}"
+      user: "{{ env_var('SNOWFLAKE_USER', 'AHMEDEHAB') }}"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      role: ACCOUNTADMIN
+      warehouse: COMPUTE_WH
+      database: EGX_OPERATIONAL_DB
+      schema: DWH_SILVER
+      threads: 4
+      client_session_keep_alive: false

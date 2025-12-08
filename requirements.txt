@@ -7,8 +7,16 @@ egxpy @ git+https://github.com/egxlytics/egxpy.git
 # Streaming dependencies
 kafka-python
 boto3
-influxdb-client>=1.36.0
+influxdb-client>=1.36.0  # DEPRECATED - will remove after Snowflake migration
+
+# Snowflake dependencies (NEW - for operational DB + DWH)
+snowflake-connector-python>=3.6.0
+snowflake-snowpark-python>=1.11.0
 
 # Data transformation (dbt)
 dbt-core>=1.7.0
 dbt-snowflake>=1.7.0
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0

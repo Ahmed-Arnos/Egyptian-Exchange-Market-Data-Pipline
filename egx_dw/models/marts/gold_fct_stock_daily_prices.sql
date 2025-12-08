@@ -8,23 +8,21 @@
 }}
 
 WITH daily_agg AS (
-    -- Aggregate to daily level (handle multiple streaming records per day)
+    -- Already at daily level from staging
     SELECT 
         symbol,
         trade_date,
-        MAX_BY(open_price, trade_datetime) as open_price,
-        MAX(high_price) as high_price,
-        MIN(low_price) as low_price,
-        MAX_BY(close_price, trade_datetime) as close_price,  -- Last close of day
-        SUM(volume) as volume,
-        MAX_BY(data_source, trade_datetime) as data_source
+        open_price,
+        high_price,
+        low_price,
+        close_price,
+        volume,
+        data_source
     FROM {{ ref('stg_stock_prices_unified') }}
-    WHERE is_complete = TRUE 
-      AND has_anomaly = FALSE
+    WHERE close_price IS NOT NULL
     {% if is_incremental() %}
       AND trade_date > (SELECT MAX(trade_date) FROM {{ this }})
     {% endif %}
-    GROUP BY symbol, trade_date
 ),
 
 with_technical_indicators AS (

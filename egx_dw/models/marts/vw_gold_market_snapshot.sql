@@ -8,7 +8,8 @@
 -- Latest market snapshot for live dashboard
 SELECT 
     d.symbol,
-    d.index_membership,
+    d.company_name,
+    d.sector,
     f.trade_date,
     f.close_price as current_price,
     f.price_change,
@@ -20,8 +21,11 @@ SELECT
     f.ma_30d,
     f.trend_signal,
     f.volume_signal,
+    d.pe_ratio,
+    d.market_cap,
+    d.analyst_rating,
     f.data_source
 FROM {{ ref('gold_fct_stock_daily_prices') }} f
-JOIN {{ ref('gold_dim_stock') }} d 
+JOIN {{ ref('gold_dim_company') }} d 
     ON f.symbol = d.symbol
 QUALIFY ROW_NUMBER() OVER (PARTITION BY f.symbol ORDER BY f.trade_date DESC) = 1
