@@ -1,0 +1,20 @@
+{
+    "connection_string": "Endpoint=sb://YOUR-FABRIC-NAMESPACE.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=YOUR-KEY-HERE",
+    "event_hub_name": "egx_stream",
+    "symbols": [
+        "COMI",
+        "ETEL",
+        "SWDY",
+        "CIEB",
+        "OCDI",
+        "SKPC",
+        "ORWE",
+        "HELI",
+        "TELE",
+        "FWRY"
+    ],
+    "exchange": "EGX",
+    "interval": "Daily",
+    "n_bars": 100,
+    "poll_interval": 180
+}

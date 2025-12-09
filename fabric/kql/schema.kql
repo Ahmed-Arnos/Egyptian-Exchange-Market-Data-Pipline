@@ -1,0 +1,243 @@
+// ============================================================
+// Egyptian Exchange Market Data - KQL Database Schema
+// ============================================================
+// This script sets up the KQL database schema for storing
+// real-time market data from the Egyptian Exchange.
+// 
+// Run this in your KQL Database in Microsoft Fabric
+// Database: egx_market_data (inside egx_eventhouse)
+// ============================================================
+
+// ============================================================
+// 1. Create MarketData Table
+// ============================================================
+// Main table for storing OHLCV (Open, High, Low, Close, Volume) data
+.create table MarketData (
+    symbol: string,
+    exchange: string,
+    interval: string,
+    timestamp: datetime,
+    open: real,
+    high: real,
+    low: real,
+    close: real,
+    volume: long,
+    ingestion_time: datetime
+)
+
+// ============================================================
+// 2. Create JSON Ingestion Mapping
+// ============================================================
+// Maps JSON fields from Event Streams to table columns
+.create table MarketData ingestion json mapping 'MarketDataMapping'
+```
+[
+    {"column": "symbol", "path": "$.symbol", "datatype": "string"},
+    {"column": "exchange", "path": "$.exchange", "datatype": "string"},
+    {"column": "interval", "path": "$.interval", "datatype": "string"},
+    {"column": "timestamp", "path": "$.timestamp", "datatype": "datetime"},
+    {"column": "open", "path": "$.open", "datatype": "real"},
+    {"column": "high", "path": "$.high", "datatype": "real"},
+    {"column": "low", "path": "$.low", "datatype": "real"},
+    {"column": "close", "path": "$.close", "datatype": "real"},
+    {"column": "volume", "path": "$.volume", "datatype": "long"},
+    {"column": "ingestion_time", "path": "$.ingestion_time", "datatype": "datetime"}
+]
+```
+
+// ============================================================
+// 3. Set Table Policies
+// ============================================================
+
+// Set retention policy (keep data for 1 year)
+.alter table MarketData policy retention
+```
+{
+    "SoftDeletePeriod": "365.00:00:00",
+    "Recoverability": "Enabled"
+}
+```
+
+// Set caching policy (hot cache for last 30 days)
+.alter table MarketData policy caching hot = 30d
+
+// Enable streaming ingestion for real-time data
+.alter table MarketData policy streamingingestion enable
+
+// ============================================================
+// 4. Create Materialized Views for Aggregations
+// ============================================================
+
+// Latest prices per symbol (most recent data point)
+.create materialized-view with (backfill=true) LatestPrices on table MarketData
+{
+    MarketData
+    | summarize arg_max(timestamp, *) by symbol
+    | project symbol, exchange, close, high, low, open, volume, timestamp, ingestion_time
+}
+
+// Daily price changes and statistics
+.create materialized-view with (backfill=true) DailyStats on table MarketData
+{
+    MarketData
+    | where interval == "Daily"
+    | extend date = startofday(timestamp)
+    | summarize
+        open_price = first(open),
+        close_price = last(close),
+        high_price = max(high),
+        low_price = min(low),
+        total_volume = sum(volume),
+        price_change = last(close) - first(open),
+        price_change_pct = round((last(close) - first(open)) / first(open) * 100, 2)
+        by symbol, exchange, date
+    | project symbol, exchange, date, open_price, close_price, high_price, low_price, 
+              total_volume, price_change, price_change_pct
+}
+
+// Top performers by volume (last 24 hours)
+.create materialized-view with (backfill=true) TopVolumeSymbols on table MarketData
+{
+    MarketData
+    | where timestamp > ago(24h)
+    | summarize total_volume = sum(volume) by symbol, exchange
+    | top 10 by total_volume desc
+    | project symbol, exchange, total_volume
+}
+
+// Price volatility (standard deviation of close prices, last 7 days)
+.create materialized-view with (backfill=true) PriceVolatility on table MarketData
+{
+    MarketData
+    | where timestamp > ago(7d)
+    | summarize 
+        avg_close = avg(close),
+        stddev_close = stdev(close),
+        min_close = min(close),
+        max_close = max(close),
+        data_points = count()
+        by symbol, exchange
+    | extend volatility_pct = round((stddev_close / avg_close) * 100, 2)
+    | project symbol, exchange, avg_close, stddev_close, volatility_pct, 
+              min_close, max_close, data_points
+}
+
+// ============================================================
+// 5. Create Functions for Common Queries
+// ============================================================
+
+// Function: Get latest price for a symbol
+.create-or-alter function GetLatestPrice(symbol_name: string) {
+    MarketData
+    | where symbol == symbol_name
+    | top 1 by timestamp desc
+    | project symbol, close, high, low, open, volume, timestamp
+}
+
+// Function: Get price history for a symbol (last N days)
+.create-or-alter function GetPriceHistory(symbol_name: string, days: int) {
+    MarketData
+    | where symbol == symbol_name
+    | where timestamp > ago(days * 1d)
+    | order by timestamp asc
+    | project timestamp, open, high, low, close, volume
+}
+
+// Function: Get top N performers by price change percentage (last 24h)
+.create-or-alter function GetTopPerformers(n: int) {
+    MarketData
+    | where timestamp > ago(24h)
+    | summarize 
+        first_price = first(close),
+        last_price = last(close)
+        by symbol
+    | extend price_change_pct = round((last_price - first_price) / first_price * 100, 2)
+    | top n by price_change_pct desc
+    | project symbol, first_price, last_price, price_change_pct
+}
+
+// Function: Get market overview (all symbols with latest data)
+.create-or-alter function GetMarketOverview() {
+    LatestPrices
+    | join kind=leftouter (
+        MarketData
+        | where timestamp > ago(1d)
+        | summarize prev_close = first(close) by symbol
+    ) on symbol
+    | extend 
+        price_change = close - prev_close,
+        price_change_pct = round((close - prev_close) / prev_close * 100, 2)
+    | project symbol, exchange, close, high, low, volume, 
+              price_change, price_change_pct, timestamp
+    | order by symbol asc
+}
+
+// Function: Get trading volume by symbol (last 24 hours)
+.create-or-alter function GetVolumeBySymbol() {
+    MarketData
+    | where timestamp > ago(24h)
+    | summarize total_volume = sum(volume) by symbol
+    | order by total_volume desc
+}
+
+// ============================================================
+// 6. Sample Queries for Testing
+// ============================================================
+
+// View latest data ingested
+// MarketData
+// | top 100 by ingestion_time desc
+
+// Check data distribution by symbol
+// MarketData
+// | summarize count() by symbol
+// | order by count_ desc
+
+// View latest prices
+// LatestPrices
+
+// Get market overview
+// GetMarketOverview()
+
+// Get price history for COMI (last 30 days)
+// GetPriceHistory("COMI", 30)
+
+// Get top 5 performers
+// GetTopPerformers(5)
+
+// View volume leaders
+// TopVolumeSymbols
+
+// Check price volatility
+// PriceVolatility
+// | order by volatility_pct desc
+
+// ============================================================
+// 7. Monitoring Queries
+// ============================================================
+
+// Check ingestion rate (events per minute, last hour)
+// MarketData
+// | where ingestion_time > ago(1h)
+// | summarize events = count() by bin(ingestion_time, 1m)
+// | render timechart
+
+// Check data freshness (time since last ingestion)
+// MarketData
+// | summarize last_ingestion = max(ingestion_time)
+// | extend freshness = now() - last_ingestion
+// | project last_ingestion, freshness
+
+// Count records by symbol (data completeness check)
+// MarketData
+// | summarize record_count = count() by symbol
+// | order by record_count desc
+
+// Check for data gaps (missing timestamps)
+// MarketData
+// | where interval == "Daily"
+// | order by symbol, timestamp asc
+// | extend prev_timestamp = prev(timestamp, 1)
+// | extend gap_days = datetime_diff('day', timestamp, prev_timestamp)
+// | where gap_days > 1
+// | project symbol, prev_timestamp, timestamp, gap_days
