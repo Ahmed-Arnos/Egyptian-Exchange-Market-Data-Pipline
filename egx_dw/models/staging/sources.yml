@@ -22,7 +22,7 @@ sources:
           - name: company_name
           - name: sector
           - name: logo_url
-      
+      - name: TBL_FINANCIAL_RAW
       - name: TBL_STOCK_PRICE
         description: "Historical OHLCV price data with foreign key to TBL_COMPANY"
         columns:

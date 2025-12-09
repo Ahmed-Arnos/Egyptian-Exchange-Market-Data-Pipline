@@ -203,3 +203,24 @@ models:
     description: Stocks with highest volume (Grafana dashboard)
     config:
       tags: ['gold', 'grafana', 'view']
+  - name: dim_sector
+    description: "Dimension table containing unique sectors"
+    columns:
+      - name: sector_id
+        tests:
+          - unique
+          - not_null
+      - name: sector
+        tests:
+          - not_null
+
+  - name: dim_industry
+    description: "Dimension table containing unique industries"
+    columns:
+      - name: industry_id
+        tests:
+          - unique
+          - not_null
+      - name: industry
+        tests:
+          - not_null
