@@ -24,6 +24,7 @@ build/
 .venv-aws/
 TEAM_CREDENTIALS.txt
 *.credentials.txt
+/env
 
 # dbt
 target/
