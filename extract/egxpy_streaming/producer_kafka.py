@@ -4,7 +4,7 @@ EGXpy Kafka Producer
 
 Fetches Egyptian Exchange (EGX) market data using egxpy and publishes to Kafka.
 Replaces the direct-to-disk consumer with a streaming architecture:
-  EGX API → egxpy → Kafka → S3/MinIO
+  EGX API → egxpy → Kafka → S3
 
 Usage:
     # Publish daily data to Kafka (continuous polling)

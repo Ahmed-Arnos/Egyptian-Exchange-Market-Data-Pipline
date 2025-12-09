@@ -1,0 +1,171 @@
+version: 2
+
+models:
+  - name: stg_stock_prices_unified
+    description: Unified and cleaned stock prices from historical and streaming sources
+    config:
+      tags: ['staging', 'silver']
+    columns:
+      - name: symbol
+        description: Stock ticker symbol
+        tests:
+          - not_null
+      - name: company_name
+        description: Company name (from TBL_COMPANY)
+      - name: sector
+        description: Company sector (from TBL_COMPANY)
+      - name: trade_date
+        description: Trading date
+        tests:
+          - not_null
+      - name: open_price
+        description: Opening price
+      - name: high_price
+        description: Highest price
+      - name: low_price
+        description: Lowest price
+      - name: close_price
+        description: Closing price
+      - name: volume
+        description: Trading volume
+      - name: change_pct
+        description: Percentage change from previous close
+      - name: data_source
+        description: Source of the data (TVH or KAGGLE)
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['TVH', 'KAGGLE']
+      - name: ingested_at
+        description: Timestamp when record was loaded into OPERATIONAL
+      - name: updated_at
+        description: Timestamp when record was processed by dbt
+
+  - name: stg_companies
+    description: Staging for company master data
+    config:
+      tags: ['staging', 'silver']
+    columns:
+      - name: company_id
+        description: Primary key
+        tests:
+          - not_null
+          - unique
+      - name: symbol
+        description: Stock ticker symbol
+        tests:
+          - not_null
+          - unique
+      - name: company_name
+        description: Full company name
+        tests:
+          - not_null
+      - name: sector
+        description: Business sector
+      - name: industry
+        description: Industry classification
+      - name: logo_url
+        description: S3 URL to company logo
+      - name: analyst_rating
+        description: Analyst rating from market data
+
+  - name: stg_financials
+    description: Staging for financial statements with derived metrics
+    config:
+      tags: ['staging', 'silver']
+    columns:
+      - name: financial_id
+        description: Primary key
+        tests:
+          - not_null
+          - unique
+      - name: company_id
+        description: Foreign key to TBL_COMPANY
+        tests:
+          - not_null
+      - name: symbol
+        description: Stock ticker symbol
+      - name: company_name
+        description: Company name
+      - name: quarter
+        description: Fiscal quarter (YYYY-QN)
+        tests:
+          - not_null
+      - name: total_revenue
+        description: Total revenue for the quarter
+      - name: gross_profit
+        description: Gross profit
+      - name: net_income
+        description: Net income
+      - name: eps
+        description: Earnings per share
+      - name: total_assets
+        description: Total assets on balance sheet
+      - name: total_liabilities
+        description: Total liabilities
+      - name: gross_margin_pct
+        description: Calculated gross profit margin percentage
+      - name: net_margin_pct
+        description: Calculated net profit margin percentage
+      - name: roa_pct
+        description: Return on assets percentage
+      - name: debt_to_asset_ratio
+        description: Debt to asset ratio
+
+  - name: stg_market_stats
+    description: Staging for market statistics from TradingView
+    config:
+      tags: ['staging', 'silver']
+    columns:
+      - name: stat_id
+        description: Primary key
+        tests:
+          - not_null
+          - unique
+      - name: company_id
+        description: Foreign key to TBL_COMPANY
+        tests:
+          - not_null
+      - name: symbol
+        description: Stock ticker symbol
+      - name: snapshot_datetime
+        description: When the market data was captured
+        tests:
+          - not_null
+      - name: price
+        description: Current stock price
+      - name: pe_ratio
+        description: Price to earnings ratio
+      - name: market_cap
+        description: Market capitalization
+      - name: analyst_rating
+        description: Analyst rating (Strong Buy, Buy, Hold, etc.)
+      - name: effective_sector
+        description: Sector (preferring market_sector over company_sector)
+
+  - name: stg_index_membership
+    description: Staging for index composition (EGX30, EGX70, EGX100)
+    config:
+      tags: ['staging', 'silver']
+    columns:
+      - name: membership_id
+        description: Primary key
+        tests:
+          - not_null
+          - unique
+      - name: index_code
+        description: Index code (EGX30, EGX70, EGX100)
+        tests:
+          - not_null
+      - name: index_name
+        description: Full index name
+      - name: company_id
+        description: Foreign key to TBL_COMPANY
+        tests:
+          - not_null
+      - name: symbol
+        description: Stock ticker symbol
+      - name: weight
+        description: Weight in the index
+      - name: is_current
+        description: Whether membership is currently active

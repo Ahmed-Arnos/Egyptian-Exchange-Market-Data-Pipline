@@ -1,181 +1,310 @@
 {
-  "dashboard": {
-    "title": "EGX Market Data - Real-time",
-    "timezone": "browser",
-    "schemaVersion": 38,
-    "version": 1,
-    "refresh": "5s",
-    "panels": [
-      {
-        "id": 1,
-        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-        "type": "timeseries",
-        "title": "Stock Prices - Close",
-        "targets": [
-          {
-            "refId": "A",
-            "datasource": { "type": "influxdb", "uid": "influxdb" },
-            "query": "from(bucket: \"market_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> filter(fn: (r) => r[\"_field\"] == \"close\")\n  |> aggregateWindow(every: 10s, fn: last, createEmpty: false)"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "color": { "mode": "palette-classic" },
-            "custom": {
-              "drawStyle": "line",
-              "lineInterpolation": "smooth",
-              "fillOpacity": 10,
-              "showPoints": "auto"
-            },
-            "unit": "EGP"
-          }
+  "title": "EGX Market Data - Real-time",
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 5,
+  "refresh": "30s",
+  "uid": "egx-market-data",
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "type": "stat",
+      "title": "Top Gainer (30 Days)",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
+          "query": "first = from(bucket: \"market_data\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"stock_price\")\n  |> filter(fn: (r) => r._field == \"close\")\n  |> group(columns: [\"symbol\"])\n  |> first()\n\nlast = from(bucket: \"market_data\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"stock_price\")\n  |> filter(fn: (r) => r._field == \"close\")\n  |> group(columns: [\"symbol\"])\n  |> last()\n\njoin(tables: {first: first, last: last}, on: [\"symbol\"])\n  |> map(fn: (r) => ({\n    _time: r._time_last,\n    _value: ((r._value_last - r._value_first) / r._value_first) * 100.0,\n    _field: if r.symbol == \"COMI\" then \"Commercial Intl Bank (COMI)\" else if r.symbol == \"ETEL\" then \"Egypt Telecom (ETEL)\" else if r.symbol == \"HRHO\" then \"Horus Hotel (HRHO)\" else if r.symbol == \"EKHO\" then \"El Kahera Housing (EKHO)\" else if r.symbol == \"AMER\" then \"Amer Group (AMER)\" else if r.symbol == \"HELI\" then \"Heliopolis Co (HELI)\" else if r.symbol == \"EAST\" then \"Eastern Company (EAST)\" else if r.symbol == \"TMGH\" then \"TMG Holding (TMGH)\" else if r.symbol == \"CCAP\" then \"Credit Agricole (CCAP)\" else if r.symbol == \"ISMA\" then \"Ismailia Invest (ISMA)\" else if r.symbol == \"SWDY\" then \"El Sewedy Electric (SWDY)\" else if r.symbol == \"CIEB\" then \"Cairo Investment Bank (CIEB)\" else if r.symbol == \"PHDC\" then \"Palm Hills Dev (PHDC)\" else if r.symbol == \"OCDI\" then \"Orascom Construction (OCDI)\" else if r.symbol == \"JUFO\" then \"Juhayna Food (JUFO)\" else if r.symbol == \"ORWE\" then \"Oriental Weavers (ORWE)\" else r.symbol\n  }))\n  |> group()\n  |> sort(columns: [\"_value\"], desc: true)\n  |> limit(n: 1)"
         }
-      },
-      {
-        "id": 2,
-        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-        "type": "timeseries",
-        "title": "Trading Volume",
-        "targets": [
-          {
-            "refId": "A",
-            "datasource": { "type": "influxdb", "uid": "influxdb" },
-            "query": "from(bucket: \"market_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> filter(fn: (r) => r[\"_field\"] == \"volume\")\n  |> aggregateWindow(every: 10s, fn: sum, createEmpty: false)"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "color": { "mode": "palette-classic" },
-            "custom": {
-              "drawStyle": "bars",
-              "fillOpacity": 80
-            },
-            "unit": "short"
-          }
-        }
-      },
-      {
-        "id": 3,
-        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
-        "type": "timeseries",
-        "title": "OHLC Candlestick",
-        "targets": [
-          {
-            "refId": "Open",
-            "datasource": { "type": "influxdb", "uid": "influxdb" },
-            "query": "from(bucket: \"market_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> filter(fn: (r) => r[\"_field\"] == \"open\")\n  |> aggregateWindow(every: 1m, fn: last, createEmpty: false)"
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "percent",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "green" }
+            ]
           },
+          "mappings": []
+        },
+        "overrides": [
           {
-            "refId": "High",
-            "datasource": { "type": "influxdb", "uid": "influxdb" },
-            "query": "from(bucket: \"market_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> filter(fn: (r) => r[\"_field\"] == \"high\")\n  |> aggregateWindow(every: 1m, fn: last, createEmpty: false)"
-          },
-          {
-            "refId": "Low",
-            "datasource": { "type": "influxdb", "uid": "influxdb" },
-            "query": "from(bucket: \"market_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> filter(fn: (r) => r[\"_field\"] == \"low\")\n  |> aggregateWindow(every: 1m, fn: last, createEmpty: false)"
-          },
-          {
-            "refId": "Close",
-            "datasource": { "type": "influxdb", "uid": "influxdb" },
-            "query": "from(bucket: \"market_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> filter(fn: (r) => r[\"_field\"] == \"close\")\n  |> aggregateWindow(every: 1m, fn: last, createEmpty: false)"
+            "matcher": { "id": "byName", "options": "_value" },
+            "properties": [
+              { "id": "displayName", "value": " " }
+            ]
           }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "color": { "mode": "palette-classic" },
-            "custom": {
-              "drawStyle": "line",
-              "lineInterpolation": "linear",
-              "fillOpacity": 0
-            },
-            "unit": "EGP"
-          }
-        }
+        ]
       },
-      {
-        "id": 4,
-        "gridPos": { "h": 4, "w": 6, "x": 0, "y": 16 },
-        "type": "stat",
-        "title": "Latest Price",
-        "targets": [
-          {
-            "refId": "A",
-            "datasource": { "type": "influxdb", "uid": "influxdb" },
-            "query": "from(bucket: \"market_data\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> filter(fn: (r) => r[\"_field\"] == \"close\")\n  |> last()"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "color": { "mode": "thresholds" },
-            "unit": "EGP",
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                { "value": null, "color": "green" }
-              ]
-            }
-          }
-        }
-      },
-      {
-        "id": 5,
-        "gridPos": { "h": 4, "w": 6, "x": 6, "y": 16 },
-        "type": "stat",
-        "title": "Total Volume (5m)",
-        "targets": [
-          {
-            "refId": "A",
-            "datasource": { "type": "influxdb", "uid": "influxdb" },
-            "query": "from(bucket: \"market_data\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> filter(fn: (r) => r[\"_field\"] == \"volume\")\n  |> sum()"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "color": { "mode": "thresholds" },
-            "unit": "short"
-          }
-        }
-      },
-      {
-        "id": 6,
-        "gridPos": { "h": 4, "w": 6, "x": 12, "y": 16 },
-        "type": "stat",
-        "title": "Active Symbols",
-        "targets": [
-          {
-            "refId": "A",
-            "datasource": { "type": "influxdb", "uid": "influxdb" },
-            "query": "from(bucket: \"market_data\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> distinct(column: \"symbol\")\n  |> count()"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "color": { "mode": "thresholds" },
-            "unit": "short"
-          }
-        }
-      },
-      {
-        "id": 7,
-        "gridPos": { "h": 4, "w": 6, "x": 18, "y": 16 },
-        "type": "stat",
-        "title": "Data Points (5m)",
-        "targets": [
-          {
-            "refId": "A",
-            "datasource": { "type": "influxdb", "uid": "influxdb" },
-            "query": "from(bucket: \"market_data\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"stock_price\")\n  |> count()"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "color": { "mode": "thresholds" },
-            "unit": "short"
-          }
+      "options": {
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "area",
+        "text": {
+          "titleSize": 18,
+          "valueSize": 50
+        },
+        "reduceOptions": {
+          "values": false,
+          "fields": "/^_field$/",
+          "calcs": ["lastNotNull"]
         }
       }
-    ]
-  },
-  "overwrite": true
+    },
+    {
+      "id": 2,
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "type": "stat",
+      "title": "Top Loser (30 Days)",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
+          "query": "first = from(bucket: \"market_data\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"stock_price\")\n  |> filter(fn: (r) => r._field == \"close\")\n  |> group(columns: [\"symbol\"])\n  |> first()\n\nlast = from(bucket: \"market_data\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"stock_price\")\n  |> filter(fn: (r) => r._field == \"close\")\n  |> group(columns: [\"symbol\"])\n  |> last()\n\njoin(tables: {first: first, last: last}, on: [\"symbol\"])\n  |> map(fn: (r) => ({\n    _time: r._time_last,\n    _value: ((r._value_last - r._value_first) / r._value_first) * 100.0,\n    _field: if r.symbol == \"COMI\" then \"Commercial Intl Bank (COMI)\" else if r.symbol == \"ETEL\" then \"Egypt Telecom (ETEL)\" else if r.symbol == \"HRHO\" then \"Horus Hotel (HRHO)\" else if r.symbol == \"EKHO\" then \"El Kahera Housing (EKHO)\" else if r.symbol == \"AMER\" then \"Amer Group (AMER)\" else if r.symbol == \"HELI\" then \"Heliopolis Co (HELI)\" else if r.symbol == \"EAST\" then \"Eastern Company (EAST)\" else if r.symbol == \"TMGH\" then \"TMG Holding (TMGH)\" else if r.symbol == \"CCAP\" then \"Credit Agricole (CCAP)\" else if r.symbol == \"ISMA\" then \"Ismailia Invest (ISMA)\" else if r.symbol == \"SWDY\" then \"El Sewedy Electric (SWDY)\" else if r.symbol == \"CIEB\" then \"Cairo Investment Bank (CIEB)\" else if r.symbol == \"PHDC\" then \"Palm Hills Dev (PHDC)\" else if r.symbol == \"OCDI\" then \"Orascom Construction (OCDI)\" else if r.symbol == \"JUFO\" then \"Juhayna Food (JUFO)\" else if r.symbol == \"ORWE\" then \"Oriental Weavers (ORWE)\" else r.symbol\n  }))\n  |> group()\n  |> sort(columns: [\"_value\"], desc: false)\n  |> limit(n: 1)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "percent",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "red" }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "_value" },
+            "properties": [
+              { "id": "displayName", "value": " " }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "area",
+        "text": {
+          "titleSize": 18,
+          "valueSize": 50
+        },
+        "reduceOptions": {
+          "values": false,
+          "fields": "/^_field$/",
+          "calcs": ["lastNotNull"]
+        }
+      }
+    },
+    {
+      "id": 3,
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "type": "stat",
+      "title": "Market Average Return (30 Days)",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
+          "query": "first = from(bucket: \"market_data\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"stock_price\")\n  |> filter(fn: (r) => r._field == \"close\")\n  |> group(columns: [\"symbol\"])\n  |> first()\n\nlast = from(bucket: \"market_data\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"stock_price\")\n  |> filter(fn: (r) => r._field == \"close\")\n  |> group(columns: [\"symbol\"])\n  |> last()\n\njoin(tables: {first: first, last: last}, on: [\"symbol\"])\n  |> map(fn: (r) => ({\n    _value: ((r._value_last - r._value_first) / r._value_first) * 100.0\n  }))\n  |> group()\n  |> mean()"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "percent",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "blue" },
+              { "value": -5, "color": "red" },
+              { "value": 0, "color": "yellow" },
+              { "value": 5, "color": "green" }
+            ]
+          }
+        }
+      },
+      "options": {
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 4,
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 8 },
+      "type": "timeseries",
+      "title": "Stock Price Trends (30 Days)",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
+          "query": "from(bucket: \"market_data\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"stock_price\")\n  |> filter(fn: (r) => r._field == \"close\")\n  |> map(fn: (r) => ({\n    _time: r._time,\n    _value: r._value,\n    _field: if r.symbol == \"COMI\" then \"Commercial Intl Bank (COMI)\" else if r.symbol == \"ETEL\" then \"Egypt Telecom (ETEL)\" else if r.symbol == \"HRHO\" then \"Horus Hotel (HRHO)\" else if r.symbol == \"EKHO\" then \"El Kahera Housing (EKHO)\" else if r.symbol == \"AMER\" then \"Amer Group (AMER)\" else if r.symbol == \"HELI\" then \"Heliopolis Co (HELI)\" else if r.symbol == \"EAST\" then \"Eastern Company (EAST)\" else if r.symbol == \"TMGH\" then \"TMG Holding (TMGH)\" else if r.symbol == \"CCAP\" then \"Credit Agricole (CCAP)\" else if r.symbol == \"ISMA\" then \"Ismailia Invest (ISMA)\" else if r.symbol == \"SWDY\" then \"El Sewedy Electric (SWDY)\" else if r.symbol == \"CIEB\" then \"Cairo Investment Bank (CIEB)\" else if r.symbol == \"PHDC\" then \"Palm Hills Dev (PHDC)\" else if r.symbol == \"OCDI\" then \"Orascom Construction (OCDI)\" else if r.symbol == \"JUFO\" then \"Juhayna Food (JUFO)\" else if r.symbol == \"ORWE\" then \"Oriental Weavers (ORWE)\" else r.symbol\n  }))\n  |> group(columns: [\"_field\"])\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "unit": "EGP",
+          "decimals": 2
+        }
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": ["last", "mean"],
+          "showLegend": true
+        }
+      }
+    },
+    {
+      "id": 5,
+      "gridPos": { "h": 12, "w": 12, "x": 0, "y": 18 },
+      "type": "barchart",
+      "title": "30-Day Performance (%)",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
+          "query": "first = from(bucket: \"market_data\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"stock_price\")\n  |> filter(fn: (r) => r._field == \"close\")\n  |> group(columns: [\"symbol\"])\n  |> first()\n\nlast = from(bucket: \"market_data\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"stock_price\")\n  |> filter(fn: (r) => r._field == \"close\")\n  |> group(columns: [\"symbol\"])\n  |> last()\n\njoin(tables: {first: first, last: last}, on: [\"symbol\"])\n  |> map(fn: (r) => ({\n    _time: r._time_last,\n    _value: ((r._value_last - r._value_first) / r._value_first) * 100.0,\n    _field: if r.symbol == \"COMI\" then \"Commercial Intl Bank (COMI)\" else if r.symbol == \"ETEL\" then \"Egypt Telecom (ETEL)\" else if r.symbol == \"HRHO\" then \"Horus Hotel (HRHO)\" else if r.symbol == \"EKHO\" then \"El Kahera Housing (EKHO)\" else if r.symbol == \"AMER\" then \"Amer Group (AMER)\" else if r.symbol == \"HELI\" then \"Heliopolis Co (HELI)\" else if r.symbol == \"EAST\" then \"Eastern Company (EAST)\" else if r.symbol == \"TMGH\" then \"TMG Holding (TMGH)\" else if r.symbol == \"CCAP\" then \"Credit Agricole (CCAP)\" else if r.symbol == \"ISMA\" then \"Ismailia Invest (ISMA)\" else if r.symbol == \"SWDY\" then \"El Sewedy Electric (SWDY)\" else if r.symbol == \"CIEB\" then \"Cairo Investment Bank (CIEB)\" else if r.symbol == \"PHDC\" then \"Palm Hills Dev (PHDC)\" else if r.symbol == \"OCDI\" then \"Orascom Construction (OCDI)\" else if r.symbol == \"JUFO\" then \"Juhayna Food (JUFO)\" else if r.symbol == \"ORWE\" then \"Oriental Weavers (ORWE)\" else r.symbol\n  }))\n  |> group(columns: [\"_field\"])\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "percent",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "value": null, "color": "red" },
+              { "value": 0, "color": "green" }
+            ]
+          }
+        }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "always"
+      }
+    },
+    {
+      "id": 6,
+      "gridPos": { "h": 12, "w": 12, "x": 12, "y": 18 },
+      "type": "timeseries",
+      "title": "Trading Volume",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
+          "query": "from(bucket: \"market_data\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"stock_price\")\n  |> filter(fn: (r) => r._field == \"volume\")\n  |> map(fn: (r) => ({\n    _time: r._time,\n    _value: r._value,\n    _field: if r.symbol == \"COMI\" then \"Commercial Intl Bank (COMI)\" else if r.symbol == \"ETEL\" then \"Egypt Telecom (ETEL)\" else if r.symbol == \"HRHO\" then \"Horus Hotel (HRHO)\" else if r.symbol == \"EKHO\" then \"El Kahera Housing (EKHO)\" else if r.symbol == \"AMER\" then \"Amer Group (AMER)\" else if r.symbol == \"HELI\" then \"Heliopolis Co (HELI)\" else if r.symbol == \"EAST\" then \"Eastern Company (EAST)\" else if r.symbol == \"TMGH\" then \"TMG Holding (TMGH)\" else if r.symbol == \"CCAP\" then \"Credit Agricole (CCAP)\" else if r.symbol == \"ISMA\" then \"Ismailia Invest (ISMA)\" else if r.symbol == \"SWDY\" then \"El Sewedy Electric (SWDY)\" else if r.symbol == \"CIEB\" then \"Cairo Investment Bank (CIEB)\" else if r.symbol == \"PHDC\" then \"Palm Hills Dev (PHDC)\" else if r.symbol == \"OCDI\" then \"Orascom Construction (OCDI)\" else if r.symbol == \"JUFO\" then \"Juhayna Food (JUFO)\" else if r.symbol == \"ORWE\" then \"Oriental Weavers (ORWE)\" else r.symbol\n  }))\n  |> group(columns: [\"_field\"])\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80
+          },
+          "unit": "short"
+        }
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      }
+    },
+    {
+      "id": 7,
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 30 },
+      "type": "table",
+      "title": "Stock Performance Summary",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "P951FEA4DE68E13C5" },
+          "query": "from(bucket: \"market_data\")\n  |> range(start: -1d)\n  |> filter(fn: (r) => r._measurement == \"stock_price\")\n  |> filter(fn: (r) => r._field == \"close\")\n  |> group(columns: [\"symbol\"])\n  |> last()\n  |> map(fn: (r) => ({\n    _time: r._time,\n    price: r._value,\n    company: if r.symbol == \"COMI\" then \"Commercial Intl Bank (COMI)\" else if r.symbol == \"ETEL\" then \"Egypt Telecom (ETEL)\" else if r.symbol == \"HRHO\" then \"Horus Hotel (HRHO)\" else if r.symbol == \"EKHO\" then \"El Kahera Housing (EKHO)\" else if r.symbol == \"AMER\" then \"Amer Group (AMER)\" else if r.symbol == \"HELI\" then \"Heliopolis Co (HELI)\" else if r.symbol == \"EAST\" then \"Eastern Company (EAST)\" else if r.symbol == \"TMGH\" then \"TMG Holding (TMGH)\" else if r.symbol == \"CCAP\" then \"Credit Agricole (CCAP)\" else if r.symbol == \"ISMA\" then \"Ismailia Invest (ISMA)\" else if r.symbol == \"SWDY\" then \"El Sewedy Electric (SWDY)\" else if r.symbol == \"CIEB\" then \"Cairo Investment Bank (CIEB)\" else if r.symbol == \"PHDC\" then \"Palm Hills Dev (PHDC)\" else if r.symbol == \"OCDI\" then \"Orascom Construction (OCDI)\" else if r.symbol == \"JUFO\" then \"Juhayna Food (JUFO)\" else if r.symbol == \"ORWE\" then \"Oriental Weavers (ORWE)\" else r.symbol\n  }))\n  |> group()\n  |> keep(columns: [\"_time\", \"price\", \"company\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "center",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "price" },
+            "properties": [
+              { "id": "displayName", "value": "Latest Price (EGP)" },
+              { "id": "decimals", "value": 2 },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              { "id": "custom.width", "value": 150 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "company" },
+            "properties": [
+              { "id": "displayName", "value": "Company" },
+              { "id": "custom.width", "value": 350 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "_time" },
+            "properties": [
+              { "id": "displayName", "value": "Last Update" }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Latest Price (EGP)",
+            "desc": true
+          }
+        ]
+      }
+    }
+  ]
 }

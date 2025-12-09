@@ -1,0 +1,178 @@
+version: 2
+
+sources:
+  - name: operational
+    description: Normalized operational database with proper relational structure
+    database: EGX_OPERATIONAL_DB
+    schema: OPERATIONAL
+    tables:
+      - name: TBL_COMPANY
+        description: "Companies master table with metadata, logos, sectors"
+        columns:
+          - name: company_id
+            description: "Primary key - auto-increment surrogate key"
+            tests:
+              - unique
+              - not_null
+          - name: symbol
+            description: "Stock ticker symbol (unique)"
+            tests:
+              - unique
+              - not_null
+          - name: company_name
+          - name: sector
+          - name: logo_url
+      
+      - name: TBL_STOCK_PRICE
+        description: "Historical OHLCV price data with foreign key to TBL_COMPANY"
+        columns:
+          - name: price_id
+            description: "Primary key"
+            tests:
+              - unique
+              - not_null
+          - name: company_id
+            description: "Foreign key to TBL_COMPANY"
+            tests:
+              - not_null
+              - relationships:
+                  config:
+                    severity: warn
+                  arguments:
+                    to: source('operational', 'TBL_COMPANY')
+                    field: company_id
+          - name: trade_date
+            tests:
+              - not_null
+          - name: close_price
+            tests:
+              - not_null
+      
+      - name: TBL_FINANCIAL
+        description: "Quarterly/annual financial statements"
+        columns:
+          - name: financial_id
+            tests:
+              - unique
+              - not_null
+          - name: company_id
+            tests:
+              - not_null
+              - relationships:
+                  config:
+                    severity: warn
+                  arguments:
+                    to: source('operational', 'TBL_COMPANY')
+                    field: company_id
+          - name: quarter
+            tests:
+              - not_null
+      
+      - name: TBL_MARKET_STAT
+        description: "Real-time market statistics: P/E, market cap, analyst ratings"
+        columns:
+          - name: stat_id
+            tests:
+              - unique
+              - not_null
+          - name: company_id
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('operational', 'TBL_COMPANY')
+                    field: company_id
+      
+      - name: TBL_INDEX
+        description: "Market indices (EGX30, EGX70, EGX100)"
+        columns:
+          - name: index_id
+            tests:
+              - unique
+              - not_null
+          - name: index_code
+            tests:
+              - unique
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['EGX30', 'EGX70', 'EGX100']
+      
+      - name: TBL_INDEX_MEMBERSHIP
+        description: "Index composition - which companies belong to which indices"
+        columns:
+          - name: membership_id
+            tests:
+              - unique
+              - not_null
+          - name: index_id
+            tests:
+              - not_null
+              - relationships:
+                  config:
+                    severity: warn
+                  arguments:
+                    to: source('operational', 'TBL_INDEX')
+                    field: index_id
+          - name: company_id
+            tests:
+              - not_null
+              - relationships:
+                  config:
+                    severity: warn
+                  arguments:
+                    to: source('operational', 'TBL_COMPANY')
+                    field: company_id
+      
+      - name: CORPORATE_ACTIONS
+        description: "Dividends, splits, bonus shares"
+      
+      - name: VW_CURRENT_TRADING_STATUS
+        description: "Real-time market status view"
+  
+  - name: bronze
+    description: Legacy bronze schema (will be deprecated after migration)
+    database: EGX_OPERATIONAL_DB
+    schema: BRONZE
+    tables:
+      - name: bronze_stock_prices_historical
+        description: Historical stock prices from S3 CSV files (2019-2023)
+        columns:
+          - name: symbol
+            description: Stock ticker symbol (may have nulls - filtered in Silver)
+          - name: date_str
+            description: Date string in MM/DD/YYYY format
+          - name: price
+            description: Closing price
+          - name: open
+            description: Opening price
+          - name: high
+            description: Highest price
+          - name: low
+            description: Lowest price
+          - name: volume_str
+            description: Volume string with K/M notation (e.g., "2.55M")
+          - name: change_pct
+            description: Daily percentage change
+            
+      - name: bronze_stock_prices_streaming
+        description: Real-time stock prices from S3 JSON files (streaming data)
+        columns:
+          - name: symbol
+            description: Stock ticker symbol
+            tests:
+              - not_null
+          - name: datetime
+            description: Timestamp of the price data
+            tests:
+              - not_null
+          - name: open
+            description: Opening price
+          - name: high
+            description: Highest price
+          - name: low
+            description: Lowest price
+          - name: close
+            description: Closing price
+          - name: volume
+            description: Trading volume

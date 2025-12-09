@@ -1,0 +1,205 @@
+version: 2
+
+models:
+  - name: gold_fct_stock_daily_prices
+    description: Daily stock prices with technical indicators and trend signals
+    config:
+      tags: ['gold', 'fact']
+    columns:
+      - name: symbol
+        description: Stock ticker symbol
+        tests:
+          - not_null
+      - name: trade_date
+        description: Trading date
+        tests:
+          - not_null
+      - name: open_price
+        description: Opening price
+      - name: high_price
+        description: Highest price of the day
+      - name: low_price
+        description: Lowest price of the day
+      - name: close_price
+        description: Closing price
+        tests:
+          - not_null
+      - name: volume
+        description: Trading volume
+      - name: price_change
+        description: Absolute price change from previous close
+      - name: price_change_pct
+        description: Percentage price change from previous close
+      - name: price_range
+        description: Daily price range (high - low)
+      - name: typical_price
+        description: (high + low + close) / 3
+      - name: ma_7d
+        description: 7-day moving average of closing price
+      - name: ma_30d
+        description: 30-day moving average of closing price
+      - name: volume_ma_7d
+        description: 7-day moving average of volume
+      - name: trend_signal
+        description: Trend classification (BULLISH, BEARISH, NEUTRAL)
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['BULLISH', 'BEARISH', 'NEUTRAL']
+      - name: volume_signal
+        description: Volume classification (HIGH, NORMAL, LOW)
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['HIGH', 'NORMAL', 'LOW']
+      - name: data_source
+        description: Source of the data (TVH or KAGGLE)
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['TVH', 'KAGGLE']
+      - name: last_updated
+        description: Timestamp when record was created by dbt
+
+  - name: gold_dim_company
+    description: Company dimension table with master data and latest market metrics
+    config:
+      tags: ['gold', 'dimension']
+    columns:
+      - name: company_id
+        description: Primary key
+        tests:
+          - unique
+          - not_null
+      - name: symbol
+        description: Stock ticker symbol
+        tests:
+          - unique
+          - not_null
+      - name: company_name
+        description: Full company name
+        tests:
+          - not_null
+      - name: sector
+        description: Business sector (from market stats or company data)
+      - name: industry
+        description: Industry classification
+      - name: latest_price
+        description: Most recent stock price (from TradingView)
+      - name: latest_change_pct
+        description: Latest percentage change
+      - name: market_cap
+        description: Market capitalization
+      - name: pe_ratio
+        description: Price to earnings ratio
+      - name: eps_ttm
+        description: Earnings per share (trailing 12 months)
+      - name: div_yield_pct
+        description: Dividend yield percentage
+      - name: analyst_rating
+        description: Analyst rating (Strong Buy, Buy, Hold, etc.)
+      - name: logo_url
+        description: S3 URL to company logo
+      - name: latest_price_date
+        description: Most recent trading date
+      - name: trading_days_available
+        description: Total number of trading days in historical data
+      - name: is_active
+        description: Whether the company is currently active
+      - name: latest_market_data_at
+        description: Timestamp of latest market snapshot
+      - name: dbt_updated_at
+        description: Timestamp when record was created by dbt
+
+  - name: gold_fct_index_performance
+    description: Daily index performance for EGX30, EGX70, and EGX100
+    config:
+      tags: ['gold', 'fact', 'indices']
+    columns:
+      - name: index_code
+        description: Index code (EGX30, EGX70, EGX100)
+        tests:
+          - not_null
+      - name: index_name
+        description: Full index name
+      - name: trade_date
+        description: Trading date
+        tests:
+          - not_null
+      - name: index_open
+        description: Index opening value (weighted sum)
+      - name: index_high
+        description: Index highest value
+      - name: index_low
+        description: Index lowest value
+      - name: index_close
+        description: Index closing value (weighted sum)
+      - name: total_volume
+        description: Aggregate volume of all constituents
+      - name: constituents_count
+        description: Number of stocks in the index on this date
+      - name: prev_close
+        description: Previous day's closing value
+      - name: daily_change
+        description: Absolute daily change
+      - name: daily_change_pct
+        description: Percentage daily change
+      - name: intraday_range
+        description: Intraday range (high - low)
+      - name: intraday_range_pct
+        description: Intraday range as percentage
+
+  - name: vw_gold_market_snapshot
+    description: Latest prices and signals for all stocks (Grafana dashboard)
+    config:
+      tags: ['gold', 'grafana', 'view']
+    columns:
+      - name: symbol
+        description: Stock ticker symbol
+      - name: company_name
+        description: Company name
+      - name: sector
+        description: Business sector
+      - name: trade_date
+        description: Most recent trading date
+      - name: current_price
+        description: Latest closing price
+      - name: price_change
+        description: Price change from previous close
+      - name: price_change_pct
+        description: Percentage change from previous close
+      - name: volume
+        description: Trading volume
+      - name: day_high
+        description: Highest price of the day
+      - name: day_low
+        description: Lowest price of the day
+      - name: ma_7d
+        description: 7-day moving average
+      - name: ma_30d
+        description: 30-day moving average
+      - name: trend_signal
+        description: Trend classification
+      - name: volume_signal
+        description: Volume classification
+      - name: pe_ratio
+        description: Price to earnings ratio
+      - name: market_cap
+        description: Market capitalization
+      - name: analyst_rating
+        description: Analyst rating
+
+  - name: vw_gold_price_history
+    description: 6-month price history with moving averages (Grafana charts)
+    config:
+      tags: ['gold', 'grafana', 'view']
+
+  - name: vw_gold_top_movers
+    description: Top gainers and losers (Grafana dashboard)
+    config:
+      tags: ['gold', 'grafana', 'view']
+
+  - name: vw_gold_volume_leaders
+    description: Stocks with highest volume (Grafana dashboard)
+    config:
+      tags: ['gold', 'grafana', 'view']
