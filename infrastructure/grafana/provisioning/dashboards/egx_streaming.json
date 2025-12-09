@@ -1,0 +1,259 @@
+{
+  "title": "Egyptian Exchange Market - Live Trading Dashboard",
+  "uid": "egx-streaming",
+  "timezone": "browser",
+  "tags": ["egx", "stocks", "trading"],
+  "editable": true,
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Market Overview",
+      "gridPos": {"h": 4, "w": 24, "x": 0, "y": 0},
+      "datasource": {"type": "influxdb", "uid": "P3C6603E967DC8568"},
+      "targets": [{
+        "refId": "A",
+        "query": "from(bucket: \"market_data\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"stock_price\")\n  |> filter(fn: (r) => r._field == \"close\")\n  |> group(columns: [\"symbol\"])\n  |> last()\n  |> group()"
+      }],
+      "options": {
+        "orientation": "horizontal",
+        "textMode": "value_and_name",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyEGP",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "dark-green"},
+              {"value": 50, "color": "green"},
+              {"value": 100, "color": "yellow"}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Live Stock Prices",
+      "gridPos": {"h": 12, "w": 16, "x": 0, "y": 4},
+      "datasource": {"type": "influxdb", "uid": "P3C6603E967DC8568"},
+      "targets": [{
+        "refId": "A",
+        "query": "from(bucket: \"market_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"stock_price\")\n  |> filter(fn: (r) => r._field == \"close\")\n  |> aggregateWindow(every: 1d, fn: last, createEmpty: false)\n  |> group(columns: [\"symbol\"])"
+      }],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": ["lastNotNull", "max", "min", "mean"]
+        },
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "pointSize": 4,
+            "showPoints": "auto",
+            "spanNulls": true
+          },
+          "unit": "currencyEGP",
+          "decimals": 2,
+          "color": {"mode": "palette-classic"},
+          "displayNameFromDS": "symbol"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Top Performers",
+      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 4},
+      "datasource": {"type": "influxdb", "uid": "P3C6603E967DC8568"},
+      "targets": [{
+        "refId": "A",
+        "query": "from(bucket: \"market_data\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"stock_price\")\n  |> filter(fn: (r) => r._field == \"close\")\n  |> group(columns: [\"symbol\"])\n  |> last()\n  |> sort(desc: true)\n  |> limit(n: 5)"
+      }],
+      "options": {
+        "orientation": "vertical",
+        "textMode": "value_and_name",
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyEGP",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "green"},
+              {"value": 50, "color": "yellow"},
+              {"value": 100, "color": "red"}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "bargauge",
+      "title": "Trading Volume",
+      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 10},
+      "datasource": {"type": "influxdb", "uid": "P3C6603E967DC8568"},
+      "targets": [{
+        "refId": "A",
+        "query": "from(bucket: \"market_data\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"stock_price\")\n  |> filter(fn: (r) => r._field == \"volume\")\n  |> group(columns: [\"symbol\"])\n  |> sum()"
+      }],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "blue"},
+              {"value": 500000, "color": "green"},
+              {"value": 1000000, "color": "yellow"},
+              {"value": 2000000, "color": "red"}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "piechart",
+      "title": "Market Share by Volume",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16},
+      "datasource": {"type": "influxdb", "uid": "P3C6603E967DC8568"},
+      "targets": [{
+        "refId": "A",
+        "query": "from(bucket: \"market_data\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"stock_price\")\n  |> filter(fn: (r) => r._field == \"volume\")\n  |> group(columns: [\"symbol\"])\n  |> sum()\n  |> group()"
+      }],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": ["value", "percent"]
+        },
+        "pieType": "donut",
+        "tooltip": {"mode": "single"}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Price Range (High vs Low)",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16},
+      "datasource": {"type": "influxdb", "uid": "P3C6603E967DC8568"},
+      "targets": [
+        {
+          "refId": "A",
+          "query": "from(bucket: \"market_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"stock_price\")\n  |> filter(fn: (r) => r._field == \"high\")\n  |> aggregateWindow(every: 1d, fn: max, createEmpty: false)"
+        },
+        {
+          "refId": "B",
+          "query": "from(bucket: \"market_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"stock_price\")\n  |> filter(fn: (r) => r._field == \"low\")\n  |> aggregateWindow(every: 1d, fn: min, createEmpty: false)"
+        }
+      ],
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "multi"}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 20
+          },
+          "unit": "currencyEGP",
+          "decimals": 2
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "high"},
+            "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "low"},
+            "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]
+          }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Latest Stock Prices",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16},
+      "datasource": {"type": "influxdb", "uid": "P3C6603E967DC8568"},
+      "targets": [{
+        "refId": "A",
+        "query": "from(bucket: \"market_data\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"stock_price\")\n  |> filter(fn: (r) => r._field == \"close\" or r._field == \"volume\")\n  |> group(columns: [\"symbol\"])\n  |> last()\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")"
+      }],
+      "options": {
+        "showHeader": true,
+        "sortBy": [{"displayName": "close", "desc": true}]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {"align": "auto", "displayMode": "auto"}
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "close"},
+            "properties": [
+              {"id": "displayName", "value": "Price (EGP)"},
+              {"id": "unit", "value": "currencyEGP"},
+              {"id": "decimals", "value": 2},
+              {"id": "custom.displayMode", "value": "color-background"}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "volume"},
+            "properties": [
+              {"id": "displayName", "value": "Volume"},
+              {"id": "unit", "value": "short"},
+              {"id": "decimals", "value": 0}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "symbol"},
+            "properties": [
+              {"id": "displayName", "value": "Symbol"},
+              {"id": "custom.width", "value": 100}
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "time": {"from": "now-7d", "to": "now"},
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h"],
+    "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "7d", "30d"]
+  },
+  "refresh": "10s",
+  "version": 1,
+  "style": "dark"
+}

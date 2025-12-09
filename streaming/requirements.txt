@@ -1,0 +1,2 @@
+kafka-python
+git+https://github.com/egxlytics/egxpy.git

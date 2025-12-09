@@ -80,10 +80,10 @@ def main():
     ])
 
     # Read from Kafka
-    # Note: 'kafka:9093' is the internal docker network address
+    # Use docker-kafka-1 as the host since that's the actual container name
     df = spark.readStream \
         .format("kafka") \
-        .option("kafka.bootstrap.servers", "kafka:9093") \
+        .option("kafka.bootstrap.servers", "docker-kafka-1:9093") \
         .option("subscribe", "egx_market_data") \
         .option("startingOffsets", "latest") \
         .load()

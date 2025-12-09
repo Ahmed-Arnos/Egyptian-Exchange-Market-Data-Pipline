@@ -1,4 +1,0 @@
-azure-eventhub==5.11.6
-azure-identity==1.15.0
-git+https://github.com/egxlytics/egxpy.git
-pandas>=2.0.0

@@ -1,0 +1,22 @@
+{
+  "apiVersion": 1,
+  "datasources": [
+    {
+      "name": "influxdb",
+      "type": "influxdb",
+      "access": "proxy",
+      "url": "http://influxdb:8086",
+      "jsonData": {
+        "version": "Flux",
+        "organization": "egx",
+        "defaultBucket": "market_data",
+        "tlsSkipVerify": true
+      },
+      "secureJsonData": {
+        "token": "egx-market-data-token-2025"
+      },
+      "isDefault": true,
+      "editable": true
+    }
+  ]
+}

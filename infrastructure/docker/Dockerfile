@@ -2,9 +2,14 @@ FROM apache/airflow:2.9.0-python3.10
 
 USER root
 RUN apt-get update && \
-    apt-get install -y git && \
+    apt-get install -y git docker.io curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Install Docker Compose plugin
+RUN mkdir -p /usr/local/lib/docker/cli-plugins && \
+    curl -SL https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose && \
+    chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
 USER airflow
 
