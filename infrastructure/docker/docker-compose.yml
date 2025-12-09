@@ -74,6 +74,13 @@ services:
             AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
             AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
             AWS_DEFAULT_REGION: ${AWS_REGION:-us-east-1}
+            # Snowflake credentials for dbt and data checks
+            SNOWFLAKE_ACCOUNT: ${SNOWFLAKE_ACCOUNT}
+            SNOWFLAKE_USER: ${SNOWFLAKE_USER}
+            SNOWFLAKE_PASSWORD: ${SNOWFLAKE_PASSWORD}
+            SNOWFLAKE_WAREHOUSE: ${SNOWFLAKE_WAREHOUSE:-COMPUTE_WH}
+            SNOWFLAKE_DATABASE: ${SNOWFLAKE_DATABASE:-EGX_OPERATIONAL_DB}
+            SNOWFLAKE_ROLE: ${SNOWFLAKE_ROLE:-SYSADMIN}
         volumes:
             - ../../airflow/dags:/opt/airflow/dags
             - ../../airflow/logs:/opt/airflow/logs
@@ -108,6 +115,13 @@ services:
             AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
             AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
             AWS_DEFAULT_REGION: ${AWS_REGION:-us-east-1}
+            # Snowflake credentials for dbt and data checks
+            SNOWFLAKE_ACCOUNT: ${SNOWFLAKE_ACCOUNT}
+            SNOWFLAKE_USER: ${SNOWFLAKE_USER}
+            SNOWFLAKE_PASSWORD: ${SNOWFLAKE_PASSWORD}
+            SNOWFLAKE_WAREHOUSE: ${SNOWFLAKE_WAREHOUSE:-COMPUTE_WH}
+            SNOWFLAKE_DATABASE: ${SNOWFLAKE_DATABASE:-EGX_OPERATIONAL_DB}
+            SNOWFLAKE_ROLE: ${SNOWFLAKE_ROLE:-SYSADMIN}
         volumes:
             - ../../airflow/dags:/opt/airflow/dags
             - ../../airflow/logs:/opt/airflow/logs

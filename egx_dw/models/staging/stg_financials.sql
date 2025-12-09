@@ -5,7 +5,7 @@
   )
 }}
 
--- Staging for financial statements with company info
+-- Staging for financial statements with company info and null handling
 SELECT 
     f.financial_id,
     f.company_id,
@@ -15,18 +15,18 @@ SELECT
     f.quarter,
     f.fiscal_year,
     f.fiscal_quarter,
-    f.total_revenue,
-    f.gross_profit,
-    f.net_income,
-    f.eps,
-    f.operating_expense,
-    f.total_assets,
-    f.total_liabilities,
-    f.free_cash_flow,
+    COALESCE(f.total_revenue, 0) as total_revenue,
+    COALESCE(f.gross_profit, 0) as gross_profit,
+    COALESCE(f.net_income, 0) as net_income,
+    COALESCE(f.eps, 0) as eps,
+    COALESCE(f.operating_expense, 0) as operating_expense,
+    COALESCE(f.total_assets, 0) as total_assets,
+    COALESCE(f.total_liabilities, 0) as total_liabilities,
+    COALESCE(f.free_cash_flow, 0) as free_cash_flow,
     -- Derived metrics
     CASE 
-        WHEN f.total_revenue > 0 THEN (f.gross_profit / f.total_revenue) * 100 
-        ELSE NULL 
+        WHEN COALESCE(f.total_revenue, 0) > 0 THEN (COALESCE(f.gross_profit, 0) / f.total_revenue) * 100 
+        ELSE 0
     END as gross_margin_pct,
     CASE 
         WHEN f.total_revenue > 0 THEN (f.net_income / f.total_revenue) * 100 

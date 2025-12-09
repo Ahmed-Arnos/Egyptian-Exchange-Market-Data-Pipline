@@ -14,7 +14,7 @@ Usage:
     python producer_kafka.py --symbols COMI --interval "5 Minute" --start-date 2025-01-20 --end-date 2025-01-20
 
 Environment Variables:
-    KAFKA_BOOTSTRAP_SERVERS: Kafka broker(s) (default: localhost:9092)
+    KAFKA_BOOTSTRAP_SERVERS: Kafka broker(s) (default: localhost:9093)
 """
 
 import argparse
@@ -215,8 +215,8 @@ Examples:
     
     parser.add_argument(
         "--bootstrap-servers",
-        default=os.environ.get('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092'),
-        help="Kafka bootstrap servers (default: localhost:9092)"
+        default=os.environ.get('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9093'),
+        help="Kafka bootstrap servers (default: localhost:9093)"
     )
     
     parser.add_argument(

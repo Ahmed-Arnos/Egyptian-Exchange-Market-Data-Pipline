@@ -8,15 +8,15 @@
 }}
 
 WITH daily_agg AS (
-    -- Already at daily level from staging
+    -- Already at daily level from staging with guaranteed non-null values
     SELECT 
         symbol,
         trade_date,
-        open_price,
-        high_price,
-        low_price,
+        COALESCE(open_price, close_price) as open_price,
+        COALESCE(high_price, close_price) as high_price,
+        COALESCE(low_price, close_price) as low_price,
         close_price,
-        volume,
+        COALESCE(volume, 0) as volume,
         data_source
     FROM {{ ref('stg_stock_prices_unified') }}
     WHERE close_price IS NOT NULL

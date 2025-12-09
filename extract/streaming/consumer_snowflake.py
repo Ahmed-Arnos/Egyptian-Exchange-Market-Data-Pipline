@@ -70,8 +70,8 @@ def get_snowflake_connection():
             user=os.getenv('SNOWFLAKE_USER'),
             password=os.getenv('SNOWFLAKE_PASSWORD'),
             warehouse=os.getenv('SNOWFLAKE_WAREHOUSE', 'COMPUTE_WH'),
-            database=os.getenv('SNOWFLAKE_DATABASE', 'EGX_OPERATIONAL'),
-            schema=os.getenv('SNOWFLAKE_SCHEMA', 'RAW'),
+            database=os.getenv('SNOWFLAKE_DATABASE', 'EGX_OPERATIONAL_DB'),
+            schema=os.getenv('SNOWFLAKE_SCHEMA', 'OPERATIONAL'),
             role=os.getenv('SNOWFLAKE_ROLE', 'SYSADMIN')
         )
         LOG.info(f"Connected to Snowflake: {os.getenv('SNOWFLAKE_ACCOUNT')}")
@@ -103,22 +103,30 @@ def create_kafka_consumer(bootstrap_servers: str, topic: str, group_id: str) -> 
 
 
 def prepare_batch_insert_sql(table_name: str) -> str:
-    """Generate parameterized INSERT statement for batch inserts"""
+    """Generate parameterized INSERT statement for batch inserts matching TBL_STOCK_PRICE schema"""
     return f"""
         INSERT INTO {table_name} (
-            symbol, trade_datetime, open, high, low, close, volume,
-            data_source, interval, exchange, source_file, ingested_at
-        ) VALUES (
-            %(symbol)s, %(trade_datetime)s, %(open)s, %(high)s, %(low)s, 
-            %(close)s, %(volume)s, %(data_source)s, %(interval)s, 
-            %(exchange)s, %(source_file)s, %(ingested_at)s
-        )
+            COMPANY_ID, TRADE_DATE, OPEN_PRICE, HIGH_PRICE, LOW_PRICE, 
+            CLOSE_PRICE, VOLUME, DATA_SOURCE, CREATED_AT
+        ) 
+        SELECT 
+            c.COMPANY_ID, 
+            %(trade_date)s, 
+            %(open_price)s, 
+            %(high_price)s, 
+            %(low_price)s, 
+            %(close_price)s, 
+            %(volume)s, 
+            %(data_source)s, 
+            %(created_at)s
+        FROM EGX_OPERATIONAL_DB.OPERATIONAL.TBL_COMPANY c
+        WHERE c.SYMBOL = %(symbol)s
     """
 
 
 def transform_message_to_record(message: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Transform Kafka message to Snowflake record format
+    Transform Kafka message to TBL_STOCK_PRICE format
     
     Input (from egxpy producer):
         {
@@ -134,39 +142,39 @@ def transform_message_to_record(message: Dict[str, Any]) -> Dict[str, Any]:
             'ingestion_timestamp': '2025-12-08T14:30:05'
         }
     
-    Output (Snowflake operational table):
-        All fields mapped + data_source='API'
+    Output (TBL_STOCK_PRICE columns):
+        COMPANY_ID (looked up via JOIN), TRADE_DATE, OPEN_PRICE, HIGH_PRICE, 
+        LOW_PRICE, CLOSE_PRICE, VOLUME, DATA_SOURCE, CREATED_AT
     """
     try:
-        # Parse datetime
+        # Parse datetime to date only
         trade_datetime_str = message.get('datetime', '')
         try:
-            trade_datetime = datetime.fromisoformat(trade_datetime_str.replace('Z', '+00:00'))
+            trade_date = datetime.fromisoformat(trade_datetime_str.replace('Z', '+00:00')).date()
         except:
-            trade_datetime = datetime.utcnow()
+            trade_date = datetime.utcnow().date()
         
         return {
             'symbol': message.get('symbol', 'UNKNOWN'),
-            'trade_datetime': trade_datetime,
-            'open': float(message.get('open', 0)),
-            'high': float(message.get('high', 0)),
-            'low': float(message.get('low', 0)),
-            'close': float(message.get('close', 0)),
+            'trade_date': trade_date,
+            'open_price': float(message.get('open', 0)),
+            'high_price': float(message.get('high', 0)),
+            'low_price': float(message.get('low', 0)),
+            'close_price': float(message.get('close', 0)),
             'volume': int(message.get('volume', 0)),
-            'data_source': 'API',
-            'interval': message.get('interval', 'Daily'),
-            'exchange': message.get('exchange', 'EGX'),
-            'source_file': 'kafka_stream',
-            'ingested_at': datetime.utcnow()
+            'data_source': 'STREAMING_API',
+            'created_at': datetime.utcnow()
         }
     except Exception as e:
         LOG.error(f"Failed to transform message: {e}, message: {message}")
         return None
 
 
-def write_batch_to_snowflake(conn, records: List[Dict[str, Any]], table_name: str = 'STOCK_PRICES') -> bool:
+def write_batch_to_snowflake(conn, records: List[Dict[str, Any]], table_name: str = 'EGX_OPERATIONAL_DB.OPERATIONAL.TBL_STOCK_PRICE') -> bool:
     """
-    Write batch of records to Snowflake using executemany for efficiency
+    Write batch of records to Snowflake TBL_STOCK_PRICE
+    
+    First looks up COMPANY_ID for each symbol, then inserts with VALUES
     
     Returns:
         True if successful, False otherwise
@@ -176,13 +184,57 @@ def write_batch_to_snowflake(conn, records: List[Dict[str, Any]], table_name: st
     
     cursor = conn.cursor()
     try:
-        insert_sql = prepare_batch_insert_sql(table_name)
-        cursor.executemany(insert_sql, records)
-        conn.commit()
-        LOG.info(f"✓ Inserted batch of {len(records)} records to Snowflake")
+        # Get unique symbols from batch
+        symbols = list(set(r['symbol'] for r in records))
+        symbol_placeholders = ','.join(['%s'] * len(symbols))
+        
+        # Lookup COMPANY_IDs for all symbols in batch
+        lookup_sql = f"SELECT SYMBOL, COMPANY_ID FROM EGX_OPERATIONAL_DB.OPERATIONAL.TBL_COMPANY WHERE SYMBOL IN ({symbol_placeholders})"
+        cursor.execute(lookup_sql, symbols)
+        symbol_to_id = {row[0]: row[1] for row in cursor.fetchall()}
+        
+        # Prepare INSERT statement
+        insert_sql = f"""
+            INSERT INTO {table_name} (
+                COMPANY_ID, TRADE_DATE, OPEN_PRICE, HIGH_PRICE, LOW_PRICE, 
+                CLOSE_PRICE, VOLUME, DATA_SOURCE, CREATED_AT
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s
+            )
+        """
+        
+        # Transform records to tuples with COMPANY_ID
+        insert_data = []
+        for record in records:
+            symbol = record['symbol']
+            if symbol not in symbol_to_id:
+                LOG.warning(f"Symbol {symbol} not found in TBL_COMPANY, skipping")
+                continue
+            
+            insert_data.append((
+                symbol_to_id[symbol],
+                record['trade_date'],
+                record['open_price'],
+                record['high_price'],
+                record['low_price'],
+                record['close_price'],
+                record['volume'],
+                record['data_source'],
+                record['created_at']
+            ))
+        
+        # Insert all records
+        if insert_data:
+            cursor.executemany(insert_sql, insert_data)
+            conn.commit()
+            LOG.info(f"✓ Inserted batch of {len(insert_data)} records to {table_name}")
+        else:
+            LOG.warning("No valid records to insert")
+        
         return True
     except ProgrammingError as e:
         LOG.error(f"Snowflake insert failed: {e}")
+        LOG.error(f"Sample record: {records[0] if records else 'No records'}")
         conn.rollback()
         return False
     except Exception as e:

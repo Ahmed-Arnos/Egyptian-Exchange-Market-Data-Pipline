@@ -5,19 +5,18 @@
   )
 }}
 
--- Unified staging from OPERATIONAL.TBL_STOCK_PRICE with company info
+-- Unified staging from OPERATIONAL.TBL_STOCK_PRICE with company info and null handling
 SELECT 
     c.symbol,
     c.company_name,
     c.sector,
     p.trade_date,
-    p.open_price,
-    p.high_price,
-    p.low_price,
+    COALESCE(p.open_price, p.close_price) as open_price,
+    COALESCE(p.high_price, p.close_price) as high_price,
+    COALESCE(p.low_price, p.close_price) as low_price,
     p.close_price,
-    p.volume,
-    p.change_pct,
-    p.data_source,
+    COALESCE(p.volume, 0) as volume,
+    COALESCE(p.data_source, 'UNKNOWN') as data_source,
     p.created_at as ingested_at,
     CURRENT_TIMESTAMP() as updated_at
 FROM {{ source('operational', 'TBL_STOCK_PRICE') }} p
