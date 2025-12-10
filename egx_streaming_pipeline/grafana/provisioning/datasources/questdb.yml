@@ -1,0 +1,19 @@
+apiVersion: 1
+
+datasources:
+  - name: QuestDB
+    type: questdb-questdb-datasource
+    access: proxy
+    uid: questdb
+    url: http://questdb:9000
+    isDefault: true
+    editable: true
+    user: $QUESTDB_USER
+    jsonData:
+      httpMode: GET
+      server: questdb
+      port: 8812
+      database: qdb
+      tlsMode: disable
+    secureJsonData:
+      password: $QUESTDB_PASSWORD

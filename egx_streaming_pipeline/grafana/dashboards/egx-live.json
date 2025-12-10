@@ -1,0 +1,365 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "datasource": {
+        "type": "questdb-questdb-datasource",
+        "uid": "questdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        }
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "targets": [
+        {
+          "datasource": {
+            "type": "questdb-questdb-datasource",
+            "uid": "questdb"
+          },
+          "rawSql": "SELECT timestamp as time, price as value, company_name as metric FROM egx_stock_prices ORDER BY timestamp DESC LIMIT 500",
+          "refId": "A",
+          "format": "time_series"
+        }
+      ],
+      "title": "📈 EGX Stock Prices - Live",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "questdb-questdb-datasource",
+        "uid": "questdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 0},
+              {"color": "green", "value": 1}
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "price_change_percent"},
+            "properties": [
+              {"id": "custom.cellOptions", "value": {"type": "color-background"}},
+              {"id": "decimals", "value": 2}
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 10
+      },
+      "id": 2,
+      "targets": [
+        {
+          "datasource": {
+            "type": "questdb-questdb-datasource",
+            "uid": "questdb"
+          },
+          "rawSql": "SELECT ticker, company_name, price, price_change, price_change_percent FROM egx_stock_prices WHERE timestamp = (SELECT MAX(timestamp) FROM egx_stock_prices) ORDER BY price_change_percent DESC LIMIT 10",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "title": "🚀 Top Gainers",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "questdb-questdb-datasource",
+        "uid": "questdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 0},
+              {"color": "green", "value": 1}
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "price_change_percent"},
+            "properties": [
+              {"id": "custom.cellOptions", "value": {"type": "color-background"}},
+              {"id": "decimals", "value": 2}
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 10
+      },
+      "id": 3,
+      "targets": [
+        {
+          "datasource": {
+            "type": "questdb-questdb-datasource",
+            "uid": "questdb"
+          },
+          "rawSql": "SELECT ticker, company_name, price, price_change, price_change_percent FROM egx_stock_prices WHERE timestamp = (SELECT MAX(timestamp) FROM egx_stock_prices) ORDER BY price_change_percent ASC LIMIT 10",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "title": "📉 Top Losers",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "questdb-questdb-datasource",
+        "uid": "questdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          }
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "id": 4,
+      "targets": [
+        {
+          "datasource": {
+            "type": "questdb-questdb-datasource",
+            "uid": "questdb"
+          },
+          "rawSql": "SELECT ticker, company_name, volume FROM egx_stock_prices WHERE timestamp = (SELECT MAX(timestamp) FROM egx_stock_prices) ORDER BY volume DESC LIMIT 10",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "title": "💹 Most Active (by Volume)",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "questdb-questdb-datasource",
+        "uid": "questdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "id": 5,
+      "targets": [
+        {
+          "datasource": {
+            "type": "questdb-questdb-datasource",
+            "uid": "questdb"
+          },
+          "rawSql": "SELECT company_name as metric, price * volume as value FROM egx_stock_prices WHERE timestamp = (SELECT MAX(timestamp) FROM egx_stock_prices) ORDER BY value DESC LIMIT 10",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "title": "🥧 Market Value Distribution",
+      "type": "piechart",
+      "options": {
+        "displayLabels": ["name", "percent"],
+        "legend": {"displayMode": "table", "placement": "right"},
+        "pieType": "pie"
+      }
+    },
+    {
+      "datasource": {
+        "type": "questdb-questdb-datasource",
+        "uid": "questdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 28
+      },
+      "id": 6,
+      "targets": [
+        {
+          "datasource": {
+            "type": "questdb-questdb-datasource",
+            "uid": "questdb"
+          },
+          "rawSql": "SELECT COUNT(DISTINCT ticker) as value FROM egx_stock_prices",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "title": "📊 Total Stocks",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "questdb-questdb-datasource",
+        "uid": "questdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "unit": "percent"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 28
+      },
+      "id": 7,
+      "targets": [
+        {
+          "datasource": {
+            "type": "questdb-questdb-datasource",
+            "uid": "questdb"
+          },
+          "rawSql": "SELECT AVG(price_change_percent) as value FROM egx_stock_prices WHERE timestamp = (SELECT MAX(timestamp) FROM egx_stock_prices)",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "title": "📈 Average Market Change",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "questdb-questdb-datasource",
+        "uid": "questdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 28
+      },
+      "id": 8,
+      "targets": [
+        {
+          "datasource": {
+            "type": "questdb-questdb-datasource",
+            "uid": "questdb"
+          },
+          "rawSql": "SELECT SUM(volume) as value FROM egx_stock_prices WHERE timestamp = (SELECT MAX(timestamp) FROM egx_stock_prices)",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "title": "💰 Total Trading Volume",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "questdb-questdb-datasource",
+        "uid": "questdb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"}
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 28
+      },
+      "id": 9,
+      "targets": [
+        {
+          "datasource": {
+            "type": "questdb-questdb-datasource",
+            "uid": "questdb"
+          },
+          "rawSql": "SELECT COUNT(*) as value FROM egx_stock_prices",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "title": "🗄️ Total Data Points",
+      "type": "stat"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["egx", "stocks", "egypt"],
+  "templating": {"list": []},
+  "time": {"from": "now-1h", "to": "now"},
+  "timezone": "",
+  "title": "🇪🇬 Egyptian Exchange (EGX) - Live Market",
+  "uid": "egx-live",
+  "version": 1
+}
