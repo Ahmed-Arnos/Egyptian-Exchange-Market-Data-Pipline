@@ -18,6 +18,7 @@ build/
 
 # Environments & secrets
 .env
+/env
 .env.*
 !.env.example
 .venv/

@@ -1,0 +1,33 @@
+version: 2
+
+sources:
+    - name: bronze # <-- This is the name used in the 'source' function: source('bronze', ...)
+      database: EGYPTIAN_STOCKS # <-- Your actual database name
+      schema: BRONZE # <-- Your actual schema name
+
+      tables:
+          - name: COMPANIES_RAW # <-- This is the table name used in the 'source' function: source(..., 'companies_raw')
+            description: Raw data for company information.
+
+          - name: FINANCE_RAW # <-- Add any other raw tables you need!
+            description: Raw stock finance data.
+
+          - name: PRICES_RAW # <-- Add any other raw tables you need!
+            description: Raw stock price data.
+
+models:
+    - name: stg_companies
+      columns:
+          - name: symbol
+            tests:
+                - not_null
+                - unique
+
+    - name: stg_prices
+      columns:
+          - name: symbol
+            tests:
+                - not_null
+          - name: date
+            tests:
+                - not_null

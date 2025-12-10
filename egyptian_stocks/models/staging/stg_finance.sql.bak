@@ -1,0 +1,262 @@
+{{ config(materialized='view') }}
+
+WITH raw AS (
+    SELECT
+        raw:"symbol"::string AS symbol,
+        -- raw:"quarter"::string AS quarter,
+        TO_DATE(
+            -- Concatenate the start month, day, and the full year
+            '01/' ||
+            CASE SPLIT_PART(raw:"quarter"::string, ' ', 1) -- Extracts 'Q1', 'Q2', etc.
+                WHEN 'Q1' THEN '01' -- January 1st
+                WHEN 'Q2' THEN '04' -- April 1st
+                WHEN 'Q3' THEN '07' -- July 1st
+                WHEN 'Q4' THEN '10' -- October 1st
+                ELSE NULL
+            END ||
+            '/20' ||
+            REPLACE(SPLIT_PART(raw:"quarter"::string, ' ', 2), '''', ''), -- Extracts '23', removes single quote
+            'DD/MM/YYYY' -- Specifies the format of the constructed date string
+        ) AS quarter_date,
+        CASE
+        WHEN RIGHT(TRIM(raw:"total_revenue"::string), 1) = 'T' THEN
+        (
+            REPLACE(
+                REPLACE(
+                    REPLACE(TRIM(raw:"total_revenue"::string), 'T', ''), 
+                ' ', ''), 
+            '−', '-')
+        ) * 1000000000000
+        WHEN RIGHT(TRIM(raw:"total_revenue"::string), 1) = 'B' THEN
+            (
+                REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"total_revenue"::string), 'B', ''), 
+                    ' ', ''), 
+                '−', '-')
+            )::float * 1000000000 
+        WHEN RIGHT(TRIM(raw:"total_revenue"::string), 1) = 'M' THEN
+            (
+                REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"total_revenue"::string), 'M', ''), 
+                    ' ', ''), 
+                '−', '-')
+            )::float * 1000000 
+        WHEN RIGHT(TRIM(raw:"total_revenue"::string), 1) = 'K' THEN
+            (
+                REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"total_revenue"::string), 'K', ''), 
+                    ' ', ''), 
+                '−', '-')
+            )::float * 1000 
+        ELSE
+            TRY_TO_NUMBER(REPLACE(REPLACE(TRIM(raw:"total_revenue"::string), ' ', ''), '−', '-'))::float
+        END AS total_revenue,
+        -- raw:"total_revenue"::float AS total_revenue,--------------------------
+        ------------------------------------------------------------------------
+        CASE
+        WHEN RIGHT(TRIM(raw:"net_income"::string), 1) = 'T' THEN
+            (
+                TRY_TO_NUMBER(REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"net_income"::string), 'T', ''), 
+                    ' ', ''), 
+                '−', '-'),
+                38, 10) 
+            ) * 1000000000000  -- REMOVED ::float HERE
+        WHEN RIGHT(TRIM(raw:"net_income"::string), 1) = 'B' THEN
+            (
+                TRY_TO_NUMBER(REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"net_income"::string), 'B', ''), 
+                    ' ', ''), 
+                '−', '-'),
+                38, 10) 
+            ) * 1000000000  -- REMOVED ::float HERE
+        WHEN RIGHT(TRIM(raw:"net_income"::string), 1) = 'M' THEN
+            (
+                TRY_TO_NUMBER(REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"net_income"::string), 'M', ''), 
+                    ' ', ''), 
+                '−', '-'),
+                38, 10) 
+            ) * 1000000  -- REMOVED ::float HERE
+        WHEN RIGHT(TRIM(raw:"net_income"::string), 1) = 'K' THEN
+            (
+                TRY_TO_NUMBER(REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"net_income"::string), 'K', ''), 
+                    ' ', ''), 
+                '−', '-'),
+                38, 10) 
+            ) * 1000  -- REMOVED ::float HERE
+        ELSE
+            TRY_TO_NUMBER(REPLACE(REPLACE(TRIM(raw:"net_income"::string), ' ', ''), '−', '-'), 38, 10) -- REMOVED ::float HERE
+        END AS net_income,
+        -- raw:"net_income"::float AS net_income,
+        ------------------------------------------------------------------------
+        REPLACE(raw:"eps"::string, '−', '-')::float AS eps,
+        ------------------------------------------------------------------------
+        CASE
+        WHEN RIGHT(TRIM(raw:"operating_expense"::string), 1) = 'T' THEN
+        (
+            REPLACE(
+                REPLACE(
+                    REPLACE(TRIM(raw:"operating_expense"::string), 'T', ''), 
+                ' ', ''), 
+            '−', '-')
+        )::float * 1000000000000
+        WHEN RIGHT(TRIM(raw:"operating_expense"::string), 1) = 'B' THEN
+            (
+                REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"operating_expense"::string), 'B', ''), 
+                    ' ', ''), 
+                '−', '-')
+            )::float * 1000000000 
+        WHEN RIGHT(TRIM(raw:"operating_expense"::string), 1) = 'M' THEN
+            (
+                REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"operating_expense"::string), 'M', ''), 
+                    ' ', ''), 
+                '−', '-')
+            )::float * 1000000 
+        WHEN RIGHT(TRIM(raw:"operating_expense"::string), 1) = 'K' THEN
+            (
+                REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"operating_expense"::string), 'K', ''), 
+                    ' ', ''), 
+                '−', '-')
+            )::float * 1000 
+        ELSE
+            TRY_TO_NUMBER(REPLACE(REPLACE(TRIM(raw:"operating_expense"::string), ' ', ''), '−', '-'))::float
+        END AS operating_expense,
+        ------------------------------------------------------------------------
+        -- raw:"total_assets"::float AS total_assets,
+        CASE
+        WHEN RIGHT(TRIM(raw:"total_assets"::string), 1) = 'T' THEN
+        (
+            REPLACE(
+                REPLACE(
+                    REPLACE(TRIM(raw:"total_assets"::string), 'T', ''), 
+                ' ', ''), 
+            '−', '-')
+        )::float * 1000000000000
+        WHEN RIGHT(TRIM(raw:"total_assets"::string), 1) = 'B' THEN
+            (
+                REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"total_assets"::string), 'B', ''), 
+                    ' ', ''), 
+                '−', '-')
+            )::float * 1000000000 
+        WHEN RIGHT(TRIM(raw:"total_assets"::string), 1) = 'M' THEN
+            (
+                REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"total_assets"::string), 'M', ''), 
+                    ' ', ''), 
+                '−', '-')
+            )::float * 1000000 
+        WHEN RIGHT(TRIM(raw:"total_assets"::string), 1) = 'K' THEN
+            (
+                REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"total_assets"::string), 'K', ''), 
+                    ' ', ''), 
+                '−', '-')
+            )::float * 1000 
+        ELSE
+            TRY_TO_NUMBER(REPLACE(REPLACE(TRIM(raw:"total_assets"::string), ' ', ''), '−', '-'))::float
+        END AS total_assets,
+        ------------------------------------------------------------------------
+        -- raw:"total_liabilities"::float AS total_liabilities,
+        CASE
+        WHEN RIGHT(TRIM(raw:"total_liabilities"::string), 1) = 'T' THEN
+        (
+            REPLACE(
+                REPLACE(
+                    REPLACE(TRIM(raw:"total_liabilities"::string), 'T', ''), 
+                ' ', ''), 
+            '−', '-')
+        )::float * 1000000000000
+        WHEN RIGHT(TRIM(raw:"total_liabilities"::string), 1) = 'B' THEN
+            (
+                REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"total_liabilities"::string), 'B', ''), 
+                    ' ', ''), 
+                '−', '-')
+            )::float * 1000000000 
+        WHEN RIGHT(TRIM(raw:"total_liabilities"::string), 1) = 'M' THEN
+            (
+                REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"total_liabilities"::string), 'M', ''), 
+                    ' ', ''), 
+                '−', '-')
+            )::float * 1000000 
+        WHEN RIGHT(TRIM(raw:"total_liabilities"::string), 1) = 'K' THEN
+            (
+                REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"total_liabilities"::string), 'K', ''), 
+                    ' ', ''), 
+                '−', '-')
+            )::float * 1000 
+        ELSE
+            TRY_TO_NUMBER(REPLACE(REPLACE(TRIM(raw:"total_liabilities"::string), ' ', ''), '−', '-'))::float
+        END AS total_liabilities,
+        ------------------------------------------------------------------------
+        -- raw:"free_cash_flow"::float AS free_cash_flow,
+        CASE
+        WHEN RIGHT(TRIM(raw:"free_cash_flow"::string), 1) = 'T' THEN
+            (
+                TRY_TO_NUMBER(REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"free_cash_flow"::string), 'T', ''), 
+                    ' ', ''), 
+                '−', '-'),
+                38, 10)
+            )::float * 1000000000000
+        WHEN RIGHT(TRIM(raw:"free_cash_flow"::string), 1) = 'B' THEN
+            (
+                TRY_TO_NUMBER(REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"free_cash_flow"::string), 'B', ''), 
+                    ' ', ''), 
+                '−', '-'),
+                38, 10)
+            )::float * 1000000000 
+        WHEN RIGHT(TRIM(raw:"free_cash_flow"::string), 1) = 'M' THEN
+            (
+                TRY_TO_NUMBER(REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"free_cash_flow"::string), 'M', ''), 
+                    ' ', ''), 
+                '−', '-'),
+                38, 10)
+            )::float * 1000000 
+        WHEN RIGHT(TRIM(raw:"free_cash_flow"::string), 1) = 'K' THEN
+            (
+                TRY_TO_NUMBER(REPLACE(
+                    REPLACE(
+                        REPLACE(TRIM(raw:"free_cash_flow"::string), 'K', ''), 
+                    ' ', ''), 
+                '−', '-'),
+                38, 10)
+            )::float * 1000 
+        ELSE
+            TRY_TO_NUMBER(REPLACE(REPLACE(TRIM(raw:"free_cash_flow"::string), ' ', ''), '−', '-'), 38, 10)::float
+        END AS free_cash_flow,
+        file_name,
+        load_ts
+    FROM {{ source('bronze', 'FINANCE_RAW') }}
+)
+
+SELECT * FROM raw

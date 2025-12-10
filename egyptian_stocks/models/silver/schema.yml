@@ -1,0 +1,64 @@
+version: 2
+
+models:
+    - name: dim_company
+      columns:
+          - name: symbol
+            tests:
+                - unique
+                - not_null
+
+    - name: dim_date
+      columns:
+          - name: date
+            tests:
+                - unique
+                - not_null
+
+    - name: fct_financials
+      columns:
+          - name: financial_id
+            tests:
+                - unique
+                - not_null
+
+          - name: symbol # <--- Foreign Key Column
+            tests:
+                - not_null
+                - relationships:
+                      to: ref('dim_company')
+                      field: symbol # Check that every symbol exists in dim_company
+
+          - name: quarter_date
+            tests:
+                - not_null
+
+          - name: total_revenue
+            tests:
+                - not_null
+                - dbt_utils.expression_is_true:
+                      expression: ">= 0" # Revenue should not be negative
+
+          - name: net_income
+            tests:
+                - not_null
+                # Net income can be negative (a loss), so no positive check here
+
+          - name: total_assets
+            tests:
+                - not_null
+                - dbt_utils.expression_is_true:
+                      expression: ">= 0" # Assets must be non-negative
+
+    - name: fct_prices
+      columns:
+          - name: price_id
+            tests:
+                - unique
+                - not_null
+          - name: date # <--- Define tests for the date column
+            tests:
+                - not_null
+                - relationships:
+                      to: ref('dim_date') # Target model
+                      field: date # Column in the target model (dim_date)
