@@ -2,18 +2,55 @@
     materialized='table',
     schema='GOLD'
 ) }}
-SELECT
+
+WITH base AS (
+    SELECT
+        symbol,
+        company_name,
+        currency,
+        sector,
+        industry,
+        headquarters,
+        ceo_name,
+        website,
+        founded_date,
+        isin
+    FROM {{ ref('stg_companies') }}
+),
+
+joined AS (
+    SELECT
+        b.symbol,
+        b.company_name,
+        cur.currency_id,
+        sec.sector_id,
+        ind.industry_id,
+        loc.location_id,
+        b.ceo_name,
+        b.website,
+        b.founded_date,
+        b.isin
+    FROM base b
+    LEFT JOIN {{ ref('dim_currency') }} cur
+        ON UPPER(TRIM(b.currency)) = cur.currency_code
+    LEFT JOIN {{ ref('dim_sector') }} sec
+        ON UPPER(TRIM(b.sector)) = sec.sector_name
+    LEFT JOIN {{ ref('dim_industry') }} ind
+        ON UPPER(TRIM(b.industry)) = ind.industry_name
+    LEFT JOIN {{ ref('dim_location') }} loc
+        ON UPPER(TRIM(REPLACE(REPLACE(REPLACE(b.headquarters, ',', ' '), '-', ' '), '.', ' ')))
+           = loc.location_name
+)
+
+SELECT    
     symbol,
     company_name,
-    currency,
-    sector,
-    industry,
+    currency_id,
+    sector_id,
+    industry_id,
+    location_id,
     ceo_name,
     website,
-    headquarters,
-    TRY_TO_DATE(founded_date) AS founded_date,
-    isin,
-    MIN(load_ts) AS first_seen_ts,
-    MAX(load_ts) AS last_seen_ts
-FROM {{ ref('stg_companies') }}
-GROUP BY 1,2,3,4,5,6,7,8,9,10
+    founded_date,
+    isin
+FROM joined
